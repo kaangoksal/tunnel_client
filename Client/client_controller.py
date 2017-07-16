@@ -10,6 +10,8 @@ from Client.tasks.reverse_ssh_task import ReverseSSHTask
 class ClientController(object):
     def __init__(self, comm_handler):
         self.communication_handler = comm_handler
+        self.tasks = {}
+        self.running_processes = {}
 
     def run(self):
         self.communication_handler.register_signal_handler()
@@ -76,14 +78,19 @@ class ClientController(object):
                     if message_block.payload == "SSH-Start":
                         print("Firing the ssh tunnel!")
 
-                        key_location = "/home/kaan/Desktop/centree-clientsupervisor/ssh_server_key"
-                        server_addr = "umb.kaangoksal.com"
-                        server_username = "ssh_server"
+                        # key_location = "/home/kaan/Desktop/centree-clientsupervisor/ssh_server_key"
+                        # server_addr = "umb.kaangoksal.com"
+                        # server_username = "ssh_server"
+                        #
+                        # reverse_ssh_job = ReverseSSHTask("main_server_reverse_ssh","started", key_location, server_addr, server_username, 22, 7000)
 
-                        reverse_ssh_job = ReverseSSHTask("main_server_reverse_ssh","started", key_location, server_addr, server_username, 22, 7000)
+                        reverse_ssh_job = self.tasks["SSH"]
+
+                        reverse_ssh_job.status = "started"
+
                         reverse_ssh_job.start_connection()
 
-                        self.communication_handler.running_processes["SSH"] = reverse_ssh_job
+                        self.running_processes["SSH"] = reverse_ssh_job
 
                         result_message = Message(self.communication_handler.username, "server", "result", "SSH Started")
 
@@ -91,11 +98,12 @@ class ClientController(object):
 
                     elif message_block.payload == "SSH-Stop":
                         print("Stopping the ssh tunnel!")
-                        # TODO please refactor this "client.running processes" to another class... plz...
                         # TODO incorporate hostname, system username to message
-                        reverse_ssh_job = self.communication_handler.running_processes["SSH"]
+                        reverse_ssh_job = self.running_processes["SSH"]
 
                         print(reverse_ssh_job.stop_connection())
+
+                        self.running_processes.pop('key', None)
 
                         result_message = Message(self.communication_handler.username, "server", "result", "SSH Stopped")
 
@@ -119,35 +127,3 @@ class ClientController(object):
         logic_thread = threading.Thread(target=self.main_logic)
         logic_thread.setName("Logic Thread")
         logic_thread.start()
-
-
-# def main():
-#     # TODO read a config file
-#     # SSH server config
-#     # Tunnel Server config
-#     # self identity
-#
-#     client = Client(9000, "localhost", "device-1", "password-1")
-#     client.register_signal_handler()
-#     client.socket_create()
-#     while True:
-#         try:
-#             client.socket_connect()
-#         except Exception as e:
-#             print("Error on socket connections: %s" % str(e))
-#             time.sleep(5)
-#         else:
-#             break
-#     try:
-#         initialize_threads(client)
-#
-#     except Exception as e:
-#         print('Error in main: ' + str(e))
-#     print("Amigos I go")
-#     # client.socket.close()
-#     return
-
-
-# if __name__ == '__main__':
-#     # while True:
-#     main()

@@ -32,8 +32,6 @@ class Client(object):
         self.socket = None
         self.username = username
         self.password = password
-        # This is a crappy way to put it here... CS 2340 game weak
-        self.running_processes = {}
 
     def register_signal_handler(self):
         signal.signal(signal.SIGINT, self.quit_gracefully)
@@ -121,7 +119,6 @@ class Client(object):
     def is_server_alive(self):
         server_conn = self.socket
         try:
-
             ping_message = Message(self.username, "server", "utility", "ping")
             server_conn.send(str.encode(ping_message.pack_to_json_string()))
 

@@ -1,0 +1,12 @@
+[Tunnel Client Settings]
+host = backend.centree.xyz
+port = 9000
+username = device-1
+password = pass-1
+
+[SSH Task Settings]
+key_location = /home/pi/.ssh/ssh_server_key
+server_addr = backend.centree.xyz
+server_username = ssh_server
+ssh_local_port = 22
+ssh_remote_port = 7002
