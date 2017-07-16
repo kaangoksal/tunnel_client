@@ -25,12 +25,21 @@ kaan     20156 20155  0 13:00 ?        00:00:00 ssh -N -R 7000:localhost:22 -i /
 you might kill one of them but if the other one is not killed (with the pid 20155) the reverse ssh connection will be left open!
 
 
+
+ssh -N -R 7002:localhost:22 -i /home/pi/.ssh/ssh_server_key ssh_server@backend.centree.xyz
+The authenticity of host 'backend.centree.xyz (52.5.178.171)' can't be established.
+ECDSA key fingerprint is cd:8a:72:d7:d9:a8:71:c3:10:db:a2:f1:7c:fa:dd:fd.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added 'backend.centree.xyz,52.5.178.171' (ECDSA) to the list of known hosts.
+
+
+
 Sources:
 https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
 
 
 """
-
+#TODO fix the host error which requires manual reverse ssh connection initially
 
 class ReverseSSHTask(object):
     def __init__(self, name, status, key_location, server_addr, server_username, localport, remoteport):
