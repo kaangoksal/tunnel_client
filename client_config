@@ -1,0 +1,5 @@
+[Tunnel Client Settings]
+host = backend.centree.xyz
+port = 9000
+username = device-1
+password = pass-1
