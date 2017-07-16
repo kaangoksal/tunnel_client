@@ -76,7 +76,7 @@ class Client(object):
             }
 
             return_string = json.dumps(return_dict, sort_keys=True, indent=4, separators=(',', ': '))
-            print(return_string)
+            # print(return_string)
 
             self.send_message(return_string)
             # TODO look for auth confirmation
@@ -131,7 +131,7 @@ class Client(object):
         """ Read message length and unpack it into an integer
         """
         raw_msglen = self._recvall(self.socket, 4)
-        print("First blocking call here!")
+
         if not raw_msglen:
             return None
         # We are unpacking a big endian struct which includes the length of the packet,
@@ -139,7 +139,6 @@ class Client(object):
         # which includes the length is always 4 bytes in length.
         # '>I' indicates that the struct is a unsigned integer big endian
         # CS2110 game strong
-        print("Received message, will process it " +str(raw_msglen))
         msglen = struct.unpack('>I', raw_msglen)[0]
         # Read the message data
         return self._recvall(self.socket, msglen)
@@ -157,5 +156,4 @@ class Client(object):
             if not packet:
                 return None
             data += packet
-        #print("Debug recvall " + str(data))
         return data

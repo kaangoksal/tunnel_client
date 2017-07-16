@@ -28,13 +28,12 @@ class ClientController(object):
             self.initialize_threads()
         except Exception as e:
             print('Error in main: ' + str(e))
-        print("Amigos I go")
+        # print("Amigos I go")
 
     def inbox_work(self):
         # TODO optimize blocking
         while 1:
 
-            print("Will read message! ")
             received_message = self.communication_handler.read_message()
 
             if received_message is not None and received_message != b'':
@@ -57,7 +56,7 @@ class ClientController(object):
         if will_send_queue.not_empty:
 
             message = will_send_queue.get()
-
+            print("Message ready for departure " + str(message))
             self.communication_handler.send_message(message.pack_to_json_string())
 
         else:
@@ -78,20 +77,11 @@ class ClientController(object):
                     if message_block.payload == "SSH-Start":
                         print("Firing the ssh tunnel!")
 
-                        # key_location = "/home/kaan/Desktop/centree-clientsupervisor/ssh_server_key"
-                        # server_addr = "umb.kaangoksal.com"
-                        # server_username = "ssh_server"
-                        #
-                        # reverse_ssh_job = ReverseSSHTask("main_server_reverse_ssh","started", key_location, server_addr, server_username, 22, 7000)
-
                         reverse_ssh_job = self.tasks["SSH"]
-
                         reverse_ssh_job.status = "started"
 
                         reverse_ssh_job.start_connection()
-
                         self.running_processes["SSH"] = reverse_ssh_job
-
                         result_message = Message(self.communication_handler.username, "server", "result", "SSH Started")
 
                         will_send_queue.put(result_message)
@@ -101,7 +91,7 @@ class ClientController(object):
                         # TODO incorporate hostname, system username to message
                         reverse_ssh_job = self.running_processes["SSH"]
 
-                        print(reverse_ssh_job.stop_connection())
+                        print("Reverse SSH Task PID status " + str(reverse_ssh_job.stop_connection()))
 
                         self.running_processes.pop('key', None)
 
