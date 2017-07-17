@@ -53,15 +53,17 @@ class ClientController(object):
     def outbox_work(self):
         # TODO optimize blocking
         # TODO Implement logger
-        if will_send_queue.not_empty:
+        while 1:
+            print("Outbox Work Queue" + str(will_send_queue))
+            if will_send_queue.not_empty:
 
-            message = will_send_queue.get()
-            print("Message ready for departure " + str(message))
-            self.communication_handler.send_message(message.pack_to_json_string())
+                message = will_send_queue.get()
+                print("Message ready for departure " + str(message))
+                self.communication_handler.send_message(message.pack_to_json_string())
 
-        else:
-            time.sleep(0.1)
-        # print("Finished reading and sending")
+            else:
+                time.sleep(0.1)
+            # print("Finished reading and sending")
 
     def main_logic(self):
         while 1:
