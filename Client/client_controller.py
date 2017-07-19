@@ -1,6 +1,8 @@
 
 import threading
 import time
+import signal
+import sys
 from Message import Message
 from Client.client import received_queue
 from Client.client import will_send_queue
@@ -14,8 +16,10 @@ class ClientController(object):
         self.running_processes = {}
 
     def run(self):
-        self.communication_handler.register_signal_handler()
+        #self.communication_handler.register_signal_handler()
+        self.register_signal_handler()
         self.communication_handler.socket_create()
+        self.status = True
         while True:
             try:
                 self.communication_handler.socket_connect()
@@ -30,9 +34,20 @@ class ClientController(object):
             print('Error in main: ' + str(e))
         # print("Amigos I go")
 
+    def register_signal_handler(self):
+        signal.signal(signal.SIGINT, self.quit_gracefully)
+        signal.signal(signal.SIGTERM, self.quit_gracefully)
+        return
+
+    def quit_gracefully(self, signal= None, frame= None):
+        self.status = False
+        self.communication_handler.quit_gracefully()
+        sys.exit(0)
+
+
     def inbox_work(self):
         # TODO optimize blocking
-        while 1:
+        while self.status:
 
             received_message = self.communication_handler.read_message()
 
@@ -45,7 +60,7 @@ class ClientController(object):
 
                 except Exception as e:
                     print("Received bad message " + str(e) + " message was " + str(received_message))
-            elif not self.communication_handler.is_server_alive():
+            elif not self.communication_handler.is_server_alive() and self.status:
 
                 print("fuck mate the server is dead! " + str(received_message))
                 self.communication_handler.reconnect()
@@ -53,7 +68,7 @@ class ClientController(object):
     def outbox_work(self):
         # TODO optimize blocking
         # TODO Implement logger
-        while 1:
+        while self.status:
             print("Outbox Work Queue" + str(will_send_queue))
             if will_send_queue.not_empty:
 
@@ -66,7 +81,7 @@ class ClientController(object):
             # print("Finished reading and sending")
 
     def main_logic(self):
-        while 1:
+        while self.status:
             if received_queue.not_empty:
                 message_block = received_queue.get()
 
@@ -106,16 +121,16 @@ class ClientController(object):
     def initialize_threads(self):
 
         # This thread receives messages from the server
-        receive_thread = threading.Thread(target=self.inbox_work)
-        receive_thread.setName("Receive Thread")
-        receive_thread.start()
+        self.receive_thread = threading.Thread(target=self.inbox_work)
+        self.receive_thread.setName("Receive Thread")
+        self.receive_thread.start()
 
         # This thread sends messages to the server
-        send_thread = threading.Thread(target=self.outbox_work)
-        send_thread.setName("Send Thread")
-        send_thread.start()
+        self.send_thread = threading.Thread(target=self.outbox_work)
+        self.send_thread.setName("Send Thread")
+        self.send_thread.start()
 
         # This thread listens to the received messages and does stuff according to them
-        logic_thread = threading.Thread(target=self.main_logic)
-        logic_thread.setName("Logic Thread")
-        logic_thread.start()
+        self.logic_thread = threading.Thread(target=self.main_logic)
+        self.logic_thread.setName("Logic Thread")
+        self.logic_thread.start()

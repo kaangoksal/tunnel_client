@@ -33,6 +33,13 @@ Are you sure you want to continue connecting (yes/no)? yes
 Warning: Permanently added 'backend.centree.xyz,52.5.178.171' (ECDSA) to the list of known hosts.
 
 
+root@raspberrypi:/home/pi# ssh -N -R 7002:localhost:22 -i /home/pi/.ssh/ssh_server_key ssh_server@backend.centree.xyz
+The authenticity of host 'backend.centree.xyz (52.5.178.171)' can't be established.
+ECDSA key fingerprint is cd:8a:72:d7:d9:a8:71:c3:10:db:a2:f1:7c:fa:dd:fd.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added 'backend.centree.xyz,52.5.178.171' (ECDSA) to the list of known hosts.
+
+
 
 Sources:
 https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
