@@ -19,6 +19,7 @@ class ClientController(object):
         #self.communication_handler.register_signal_handler()
         self.register_signal_handler()
         self.communication_handler.socket_create()
+        # When self.status becomes False all the threads quit, this is for terminating the program. ter
         self.status = True
         while True:
             try:
@@ -91,6 +92,7 @@ class ClientController(object):
                 #  " type_of_message " + type_of_message + " message " + message)
                 if message_block.type == "action":
                     # TODO incorporate username, system username, hostname to message
+                    # TODO add port config to the message
                     if message_block.payload == "SSH-Start":
                         print("Firing the ssh tunnel!")
 
@@ -99,7 +101,7 @@ class ClientController(object):
 
                         reverse_ssh_job.start_connection()
                         self.running_processes["SSH"] = reverse_ssh_job
-                        result_message = Message(self.communication_handler.username, "server", "result", "SSH Started")
+                        result_message = Message(self.communication_handler.username, "server", "result", "SSH Started " + "Port " + reverse_ssh_job.remote_port)
 
                         will_send_queue.put(result_message)
 
