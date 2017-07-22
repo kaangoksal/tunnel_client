@@ -93,17 +93,23 @@ class ClientController(object):
                 if message_block.type == "action":
                     # TODO incorporate username, system username, hostname to message
                     # TODO add port config to the message
+
                     if message_block.payload == "SSH-Start":
                         print("Firing the ssh tunnel!")
 
                         reverse_ssh_job = self.tasks["SSH"]
                         reverse_ssh_job.status = "started"
 
-                        reverse_ssh_job.start_connection()
-                        self.running_processes["SSH"] = reverse_ssh_job
-                        result_message = Message(self.communication_handler.username, "server", "result", "SSH Started " + "Port " + reverse_ssh_job.remote_port)
+                        successful, message = reverse_ssh_job.start_connection()
 
-                        will_send_queue.put(result_message)
+                        if successful:
+                            self.running_processes["SSH"] = reverse_ssh_job
+                            result_message = Message(self.communication_handler.username, "server", "result", "SSH Started " + "Port " + str(reverse_ssh_job.remote_port))
+
+                            will_send_queue.put(result_message)
+                        elif not successful:
+                            result_message = Message(self.communication_handler.username, "server", "result", "SSH Problem " + str(message))
+                            will_send_queue.put(result_message)
 
                     elif message_block.payload == "SSH-Stop":
                         print("Stopping the ssh tunnel!")
@@ -112,7 +118,7 @@ class ClientController(object):
 
                         print("Reverse SSH Task PID status " + str(reverse_ssh_job.stop_connection()))
 
-                        self.running_processes.pop('key', None)
+                        self.running_processes.pop(reverse_ssh_job, None)
 
                         result_message = Message(self.communication_handler.username, "server", "result", "SSH Stopped")
 

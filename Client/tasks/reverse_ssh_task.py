@@ -2,6 +2,7 @@ import subprocess
 import time
 import os
 import signal
+import select
 
 """
 How does this shit work?
@@ -68,12 +69,29 @@ class ReverseSSHTask(object):
         command = "ssh -N -R " + str(self.remote_port) + ":localhost:" + str(
             self.local_port) + " -i " + self.key_location + " " + self.server_username + "@" + self.server_addr
         try:
-            self.ssh_process = subprocess.Popen(command, stdout=subprocess.PIPE,
-                               shell=True, preexec_fn=os.setsid)
-            return True
+            self.ssh_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+                                                preexec_fn=os.setsid)
+
+            # read the stdout and stderr for possible errors
+            turns = 0
+            while 1:
+                readable, writable, e = select.select([self.ssh_process.stdout, self.ssh_process.stderr], [], [], 1)
+                if len(readable) > 0:
+                    return_message = ""
+                    for pipe in readable:
+                        output = pipe.read()
+                        return_message += output.decode("utf-8")
+                    return False, return_message
+                elif turns > 5:
+                    # we can also check ps -ef | grep ssh
+                    return True, None
+                else:
+                    time.sleep(1)
+                    turns += 1
+
         except Exception as e:
             print("Failed Starting reverse SSH " + str(e))
-            return False
+            return False, str(e)
 
     def stop_connection(self):
         """
