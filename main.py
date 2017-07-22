@@ -1,40 +1,56 @@
-from Client.client_controller import ClientController
-from Client.client import Client
-from Client.tasks.reverse_ssh_task import ReverseSSHTask
+from client.client_controller import ClientController
+from client.client import CommunicationHandler
+
+from client.tasks.reverse_ssh_task import ReverseSSHTask
+from client.handlers.message_handler import MessageHandler
+from client.handlers.action_handler import ActionHandler
+from client.handlers.ssh_action_handler import SshActionHandler
+
+
 import configparser
 
-def readConfig():
-    return_dict = {}
-    Config = configparser.ConfigParser()
-    Config.read("client_config")
-    return_dict["server_addr"] = Config.get("Tunnel Client Settings", "host")
-    return_dict["server_port"] = int(Config.get("Tunnel Client Settings", "port"))
-    return_dict["username"] = Config.get("Tunnel Client Settings", "username")
-    return_dict["password"] = Config.get("Tunnel Client Settings", "password")
 
-    return_dict["ssh_key_location"] = Config.get("SSH Task Settings", "key_location")
-    return_dict["ssh_server_addr"] = Config.get("SSH Task Settings", "server_addr")
-    return_dict["ssh_server_username"] = Config.get("SSH Task Settings", "server_username")
-    return_dict["ssh_server_local_port"] = Config.get("SSH Task Settings", "ssh_local_port")
-    return_dict["ssh_server_remote_port"] = Config.get("SSH Task Settings", "ssh_remote_port")
+def read_config():
+    return_dict = {}
+    config = configparser.ConfigParser()
+    config.read("client_config")
+    return_dict["server_addr"] = config.get("Tunnel Client Settings", "host")
+    return_dict["server_port"] = int(config.get("Tunnel Client Settings", "port"))
+    return_dict["username"] = config.get("Tunnel Client Settings", "username")
+    return_dict["password"] = config.get("Tunnel Client Settings", "password")
+
+    return_dict["ssh_key_location"] = config.get("SSH Task Settings", "key_location")
+    return_dict["ssh_server_addr"] = config.get("SSH Task Settings", "server_addr")
+    return_dict["ssh_server_username"] = config.get("SSH Task Settings", "server_username")
+    return_dict["ssh_server_local_port"] = config.get("SSH Task Settings", "ssh_local_port")
+    return_dict["ssh_server_remote_port"] = config.get("SSH Task Settings", "ssh_remote_port")
 
     return return_dict
 
 
-
-
 if __name__ == '__main__':
 
-    settings = readConfig()
+    settings = read_config()
 
-    client = Client(settings["server_port"], settings["server_addr"] , settings["username"], settings["password"])
+    communication_handler = CommunicationHandler(settings["server_port"], settings["server_addr"] , settings["username"], settings["password"])
 
-    client_controller = ClientController(client)
-    client_controller.tasks["SSH"] = ReverseSSHTask("main_server_reverse_ssh",
-                                                    "offline",
-                                                    settings["ssh_key_location"],
-                                                    settings["ssh_server_addr"],
-                                                    settings["ssh_server_username"],
-                                                    settings["ssh_server_local_port"],
-                                                    settings["ssh_server_remote_port"])
+    action_handler = ActionHandler()
+    ssh_action_handler = SshActionHandler(settings)
+    message_handler = MessageHandler(action_handler)
+
+    client_controller = ClientController(communication_handler, message_handler)
+    # client_controller.tasks["SSH"] = ReverseSSHTask("main_server_reverse_ssh",
+    #                                                 "offline",
+    #                                                 settings["ssh_key_location"],
+    #                                                 settings["ssh_server_addr"],
+    #                                                 settings["ssh_server_username"],
+    #                                                 settings["ssh_server_local_port"],
+    #                                                 settings["ssh_server_remote_port"])
+    message_handler.server = client_controller
+    action_handler.server = client_controller
+    ssh_action_handler.server = client_controller
+
+    action_handler.action_handlers["SSH"] = ssh_action_handler
+
+
     client_controller.run()

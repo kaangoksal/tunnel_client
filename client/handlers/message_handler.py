@@ -10,8 +10,9 @@ from Message import Message
 
 
 class MessageHandler(object):
-    def __init__(self, action_handler):
+    def __init__(self, action_handler, server=None):
         self.action_handler = action_handler
+        self.server = server
 
     def handle_message(self, message):
         if message.type == "action":

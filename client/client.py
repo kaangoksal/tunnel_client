@@ -7,9 +7,9 @@ import struct
 import sys
 import threading
 import time
-from queue import Queue
 
-from Client.tasks.reverse_ssh_task import ReverseSSHTask
+
+from client.tasks.reverse_ssh_task import ReverseSSHTask
 from Message import Message
 
 lock = threading.Lock()
@@ -17,16 +17,19 @@ lock = threading.Lock()
 # TODO Implement logger
 
 # Received messages will be inserted to this que so others can process them
-received_queue = Queue()
+#received_queue = Queue()
 
 # Messages that are scheduled to send will be inserted to this que so comms can send them
-will_send_queue = Queue()
+#will_send_queue = Queue()
 
 
-class Client(object):
+class CommunicationHandler(object):
 
     def __init__(self, port, host, username, password):
         # self.serverHost = 'localhost'
+        # self.inbox_queue = Queue()
+        # self.outbox_queue = Queue()
+
         self.serverHost = host
         self.serverPort = port
         self.socket = None

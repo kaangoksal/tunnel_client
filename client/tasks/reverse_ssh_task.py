@@ -49,6 +49,7 @@ https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess
 """
 #TODO fix the host error which requires manual reverse ssh connection initially
 
+
 class ReverseSSHTask(object):
     def __init__(self, name, status, key_location, server_addr, server_username, localport, remoteport):
         self.name = name
@@ -71,7 +72,6 @@ class ReverseSSHTask(object):
         try:
             self.ssh_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
                                                 preexec_fn=os.setsid)
-
             # read the stdout and stderr for possible errors
             turns = 0
             while 1:
@@ -79,7 +79,8 @@ class ReverseSSHTask(object):
                 if len(readable) > 0:
                     return_message = ""
                     for pipe in readable:
-                        output = pipe.read()
+                        # TODO fuck this blocking call.... literally.... fuck...
+                        output = pipe.read(50)
                         return_message += output.decode("utf-8")
                     return False, return_message
                 elif turns > 5:

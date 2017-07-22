@@ -2,17 +2,16 @@ import json
 
 
 class ActionHandler(object):
-    def __init__(self):
+
+    def __init__(self, server=None):
+        self.server = server
         self.action_handlers = {}
-        print("Started")
 
     def handle_message(self, message):
-
         """
-            action_type: SSH
-            command: ssh start
-            parameters: name ,remote_port = 7001, local_port =22, key_location = not changable, ssh_server_addr= not changable, username= not changable,
-
+        This function handles action messages, it finds the appropriate action handler and routes the messages to that handler
+        :param message: the message itself
+        :return:
         """
         try:
             payload = json.loads(message.payload)
@@ -20,7 +19,7 @@ class ActionHandler(object):
 
             specific_action_handler = self.action_handlers[action_type]
 
-            return specific_action_handler.handle_message()
+            return specific_action_handler.handle_message(message)
 
         except Exception as e:
             print("Error occured while handling the message, Action Handler " + str(e))
