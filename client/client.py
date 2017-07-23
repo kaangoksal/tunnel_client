@@ -5,36 +5,21 @@ import signal
 import socket
 import struct
 import sys
-import threading
 import time
-
-
-from client.tasks.reverse_ssh_task import ReverseSSHTask
 from Message import Message
 
-lock = threading.Lock()
-
 # TODO Implement logger
-
-# Received messages will be inserted to this que so others can process them
-#received_queue = Queue()
-
-# Messages that are scheduled to send will be inserted to this que so comms can send them
-#will_send_queue = Queue()
 
 
 class CommunicationHandler(object):
 
-    def __init__(self, port, host, username, password):
-        # self.serverHost = 'localhost'
-        # self.inbox_queue = Queue()
-        # self.outbox_queue = Queue()
-
+    def __init__(self, port, host, username, password, software_version="V 0.0.1"):
         self.serverHost = host
         self.serverPort = port
         self.socket = None
         self.username = username
         self.password = password
+        self.software_version = software_version
 
     def register_signal_handler(self):
         signal.signal(signal.SIGINT, self.quit_gracefully)
@@ -75,7 +60,8 @@ class CommunicationHandler(object):
                 'username': self.username,
                 'password': self.password,
                 'hostname': socket.gethostname(),
-                'host_system_username': str(getpass.getuser())
+                'host_system_username': str(getpass.getuser()),
+                'software_version': self.software_version
             }
 
             return_string = json.dumps(return_dict, sort_keys=True, indent=4, separators=(',', ': '))
@@ -155,7 +141,6 @@ class CommunicationHandler(object):
         data = b''
         while len(data) < n:
             packet = conn.recv(n - len(data))
-            #packet = conn.recv(4096)
             if not packet:
                 return None
             data += packet

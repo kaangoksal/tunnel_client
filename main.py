@@ -18,6 +18,7 @@ def read_config():
     return_dict["server_port"] = int(config.get("Tunnel Client Settings", "port"))
     return_dict["username"] = config.get("Tunnel Client Settings", "username")
     return_dict["password"] = config.get("Tunnel Client Settings", "password")
+    return_dict["software_version"] = config.get("Tunnel Client Settings", "software_version")
 
     return_dict["ssh_key_location"] = config.get("SSH Task Settings", "key_location")
     return_dict["ssh_server_addr"] = config.get("SSH Task Settings", "server_addr")
@@ -32,20 +33,17 @@ if __name__ == '__main__':
 
     settings = read_config()
 
-    communication_handler = CommunicationHandler(settings["server_port"], settings["server_addr"] , settings["username"], settings["password"])
+    communication_handler = CommunicationHandler(settings["server_port"],
+                                                 settings["server_addr"],
+                                                 settings["username"],
+                                                 settings["password"])
 
     action_handler = ActionHandler()
     ssh_action_handler = SshActionHandler(settings)
     message_handler = MessageHandler(action_handler)
 
     client_controller = ClientController(communication_handler, message_handler)
-    # client_controller.tasks["SSH"] = ReverseSSHTask("main_server_reverse_ssh",
-    #                                                 "offline",
-    #                                                 settings["ssh_key_location"],
-    #                                                 settings["ssh_server_addr"],
-    #                                                 settings["ssh_server_username"],
-    #                                                 settings["ssh_server_local_port"],
-    #                                                 settings["ssh_server_remote_port"])
+
     message_handler.server = client_controller
     action_handler.server = client_controller
     ssh_action_handler.server = client_controller

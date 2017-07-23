@@ -79,8 +79,11 @@ class ReverseSSHTask(object):
                 if len(readable) > 0:
                     return_message = ""
                     for pipe in readable:
-                        # TODO fuck this blocking call.... literally.... fuck...
-                        output = pipe.read(50)
+                        output = b''
+                        byte_read = None
+                        while byte_read != b'':
+                            byte_read = pipe.read(1)
+                            output += byte_read
                         return_message += output.decode("utf-8")
                     return False, return_message
                 elif turns > 5:
