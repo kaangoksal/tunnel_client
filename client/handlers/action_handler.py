@@ -13,15 +13,15 @@ class ActionHandler(object):
         :param message: the message itself
         :return:
         """
-        try:
-            payload = json.loads(message.payload)
-            action_type = payload["action_type"]
+        #try:
+        payload = json.loads(message.payload)
+        action_type = payload["action_type"]
 
-            specific_action_handler = self.action_handlers[action_type]
+        specific_action_handler = self.action_handlers[action_type]
 
-            return specific_action_handler.handle_message(message)
+        return specific_action_handler.handle_message(message)
 
-        except Exception as e:
-            print("Error occured while handling the message, Action Handler " + str(e))
-            return False
+        #except Exception as e:
+            #print("Error occured while handling the message, Action Handler " + str(e))
+            #return False
 

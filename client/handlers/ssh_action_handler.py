@@ -69,6 +69,9 @@ class SshActionHandler(object):
                                      "SSH Started " + "Port " + str(reverse_ssh_task.remote_port))
 
             self.server.outbox_queue.put(result_message)
+
+            print(self.active_ssh_tasks)
+
         elif not successful:
             result_message = Message(self.server.communication_handler.username, "server", "result",
                                      "SSH Problem " + str(message))
@@ -90,6 +93,12 @@ class SshActionHandler(object):
 
         self.active_ssh_tasks.pop(name, None)
         # look whether the process was successful
+
+        result_message = Message(self.server.communication_handler.username, "server", "result",
+                                 "SSH Stopped " + "name " + str(name))
+
+        self.server.outbox_queue.put(result_message)
+
         return True
 
 
