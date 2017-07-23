@@ -18,7 +18,6 @@ def read_config():
     return_dict["server_port"] = int(config.get("Tunnel Client Settings", "port"))
     return_dict["username"] = config.get("Tunnel Client Settings", "username")
     return_dict["password"] = config.get("Tunnel Client Settings", "password")
-    return_dict["software_version"] = config.get("Tunnel Client Settings", "software_version")
 
     return_dict["ssh_key_location"] = config.get("SSH Task Settings", "key_location")
     return_dict["ssh_server_addr"] = config.get("SSH Task Settings", "server_addr")
