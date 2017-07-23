@@ -6,10 +6,6 @@ import sys
 from Message import Message
 from queue import Queue
 
-# from Client.client import received_queue
-# from Client.client import will_send_queue
-from client.tasks.reverse_ssh_task import ReverseSSHTask
-
 
 class ClientController(object):
     def __init__(self, comm_handler, message_handler):
@@ -130,49 +126,6 @@ class ClientController(object):
                 message_block = self.inbox_queue.get()
 
                 self.message_handler.handle_message(message_block)
-
-
-                # # sender, type_of_message, message = message_block
-                #
-                # # print("Main Logic Reporting! Sender " + str(sender) +
-                # #  " type_of_message " + type_of_message + " message " + message)
-                # if message_block.type == "action":
-                #     # TODO incorporate username, system username, hostname to message
-                #     # TODO add port config to the message
-                #
-                #     if message_block.payload == "SSH-Start":
-                #         print("Firing the ssh tunnel!")
-                #
-                #         reverse_ssh_job = self.tasks["SSH"]
-                #         reverse_ssh_job.status = "started"
-                #
-                #         successful, message = reverse_ssh_job.start_connection()
-                #
-                #         if successful:
-                #             self.running_processes["SSH"] = reverse_ssh_job
-                #             result_message = Message(self.communication_handler.username, "server", "result",
-                #                                      "SSH Started " + "Port " + str(reverse_ssh_job.remote_port))
-                #
-                #             self.outbox_queue.put(result_message)
-                #         elif not successful:
-                #             result_message = Message(self.communication_handler.username, "server", "result",
-                #                                      "SSH Problem " + str(message))
-                #             self.outbox_queue.put(result_message)
-                #
-                #     elif message_block.payload == "SSH-Stop":
-                #         print("Stopping the ssh tunnel!")
-                #         # TODO incorporate hostname, system username to message
-                #         reverse_ssh_job = self.running_processes["SSH"]
-                #
-                #         print("Reverse SSH Task PID status " + str(reverse_ssh_job.stop_connection()))
-                #
-                #         self.running_processes.pop(reverse_ssh_job, None)
-                #
-                #         result_message = Message(self.communication_handler.username, "server", "result", "SSH Stopped")
-                #
-                #         self.outbox_queue.put(result_message)
-                # else:
-                #     print("Message received! " + str(message_block))
 
     def initialize_threads(self):
         """

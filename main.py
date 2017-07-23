@@ -1,7 +1,5 @@
 from client.client_controller import ClientController
 from client.client import CommunicationHandler
-
-from client.tasks.reverse_ssh_task import ReverseSSHTask
 from client.handlers.message_handler import MessageHandler
 from client.handlers.action_handler import ActionHandler
 from client.handlers.ssh_action_handler import SshActionHandler
