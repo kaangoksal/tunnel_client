@@ -83,6 +83,7 @@ class ClientController(object):
             received_message = self.communication_handler.read_message()
 
             if received_message is not None and received_message != b'':
+                print("received message " + received_message.decode("utf-8"))
                 json_string = received_message.decode("utf-8")
                 try:
                     new_message = Message.json_string_to_message(json_string)
@@ -105,7 +106,7 @@ class ClientController(object):
         # TODO optimize blocking
         # TODO Implement logger
         while self.status:
-            print("Outbox Work Queue" + str(self.outbox_queue))
+            # print("Outbox Work Queue" + str(self.outbox_queue))
             if self.outbox_queue.not_empty:
 
                 message = self.outbox_queue.get()
@@ -122,10 +123,14 @@ class ClientController(object):
         :return:
         """
         while self.status:
-            if self.inbox_queue.not_empty:
+
+            if not self.inbox_queue.empty():
                 message_block = self.inbox_queue.get()
 
                 self.message_handler.handle_message(message_block)
+            # time.sleep(5)
+            # ping_reply_message = Message(self.communication_handler.username, "server", "utility", "ping reply")
+            # self.outbox_queue.put(ping_reply_message)
 
     def initialize_threads(self):
         """

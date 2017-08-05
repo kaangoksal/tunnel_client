@@ -13,7 +13,7 @@ from Message import Message
 
 class CommunicationHandler(object):
 
-    def __init__(self, port, host, username, password, software_version="V 0.0.1"):
+    def __init__(self, port, host, username, password, software_version="V 0.0.12"):
         self.serverHost = host
         self.serverPort = port
         self.socket = None

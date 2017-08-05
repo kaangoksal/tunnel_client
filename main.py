@@ -3,6 +3,7 @@ from client.client import CommunicationHandler
 from client.handlers.message_handler import MessageHandler
 from client.handlers.action_handler import ActionHandler
 from client.handlers.ssh_action_handler import SshActionHandler
+from client.handlers.utility_handler import UtilityHandler
 
 
 import configparser
@@ -34,18 +35,22 @@ if __name__ == '__main__':
                                                  settings["server_addr"],
                                                  settings["username"],
                                                  settings["password"])
-
+    #Initialize handler objects
     action_handler = ActionHandler()
+    utility_handler = UtilityHandler()
     ssh_action_handler = SshActionHandler(settings)
-    message_handler = MessageHandler(action_handler)
-
+    message_handler = MessageHandler()
+    # Intialize spesific handlers
+    message_handler.action_handler = action_handler
+    message_handler.utility_handler = utility_handler
+    # Create a clientcontroller
     client_controller = ClientController(communication_handler, message_handler)
 
     message_handler.server = client_controller
     action_handler.server = client_controller
     ssh_action_handler.server = client_controller
+    utility_handler.server = client_controller
 
     action_handler.action_handlers["SSH"] = ssh_action_handler
-
 
     client_controller.run()

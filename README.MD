@@ -17,3 +17,7 @@ add the ssh key located in the resources folder to /home/pi/.ssh/ folder
 execute this command once to get the server fingerprint on the client  
 `ssh -N -R 7002:localhost:22 -i /home/pi/.ssh/ssh_server_key ssh_server@backend.centree.xyz`
 
+
+**Commands**
+
+
