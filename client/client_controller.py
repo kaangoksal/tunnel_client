@@ -2,6 +2,7 @@
 import threading
 import time
 import signal
+import logging
 import sys
 from Message import Message
 from queue import Queue
@@ -14,6 +15,17 @@ class ClientController(object):
         :param comm_handler: the module that has functions for communications
         :param message_handler: the module that will handle messages
         """
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        handler = logging.FileHandler('client.log')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+
+        self.logger.addHandler(handler)
+        self.logger.info("client started")
+
         self.inbox_queue = Queue()
         self.outbox_queue = Queue()
 
@@ -42,6 +54,7 @@ class ClientController(object):
             try:
                 self.communication_handler.socket_connect()
             except Exception as e:
+                self.logger.error("Error on socket connections:  %s" % str(e))
                 print("Error on socket connections: %s" % str(e))
                 time.sleep(5)
             else:
@@ -50,6 +63,7 @@ class ClientController(object):
             self.initialize_threads()
         except Exception as e:
             print('Error in main: ' + str(e))
+            self.logger.error("Error in main "+ str(e))
         # print("Amigos I go")
 
     def register_signal_handler(self):
@@ -92,9 +106,11 @@ class ClientController(object):
 
                 except Exception as e:
                     print("Received bad message " + str(e) + " message was " + str(received_message))
+                    self.logger.error("Received bad message "+ str(e) + " message was " + str(received_message))
             elif not self.communication_handler.is_server_alive() and self.status:
 
                 print("fuck mate the server is dead! " + str(received_message))
+                self.logger.error("The server appears to be dead "+ str(received_message))
                 self.communication_handler.reconnect()
 
     def outbox_work(self):
@@ -111,6 +127,7 @@ class ClientController(object):
 
                 message = self.outbox_queue.get()
                 print("Message ready for departure " + str(message))
+                self.logger.debug("Message ready for departure " + str(message))
                 self.communication_handler.send_message(message.pack_to_json_string())
 
             else:
