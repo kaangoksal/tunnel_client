@@ -7,8 +7,7 @@ import struct
 import sys
 import time
 from Message import Message
-
-# TODO Implement logger
+import logging
 
 
 class CommunicationHandler(object):
@@ -21,6 +20,16 @@ class CommunicationHandler(object):
         self.password = password
         self.software_version = software_version
 
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        handler = logging.FileHandler('client.log')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+
+        self.logger.addHandler(handler)
+        self.logger.info("client started")
+
     def register_signal_handler(self):
         signal.signal(signal.SIGINT, self.quit_gracefully)
         signal.signal(signal.SIGTERM, self.quit_gracefully)
@@ -28,12 +37,14 @@ class CommunicationHandler(object):
 
     def quit_gracefully(self, signal=None, frame=None):
         print('\nQuitting gracefully')
+        self.logger.info("Quitting gracefully")
         if self.socket:
             try:
                 self.socket.shutdown(2)
                 self.socket.close()
             except Exception as e:
                 print('Could not close connection %s' % str(e))
+                self.logger.error('Could not close connection %s' % str(e))
                 # continue
         sys.exit(0)
 
@@ -43,6 +54,7 @@ class CommunicationHandler(object):
             self.socket = socket.socket()
         except socket.error as e:
             print("Socket creation error" + str(e))
+            self.logger.error('Socket creation error' + str(e))
             return
         return
 
@@ -52,6 +64,7 @@ class CommunicationHandler(object):
             self.socket.connect((self.serverHost, self.serverPort))
         except socket.error as e:
             print("Socket connection error: " + str(e))
+            self.logger.error('Socket connection error' + str(e))
             time.sleep(5)
             raise
         try:
@@ -73,6 +86,7 @@ class CommunicationHandler(object):
 
         except socket.error as e:
             print("Cannot send hostname to server: " + str(e))
+            self.logger.error("Cannot send auth info to server " + str(e))
             return False
 
     def reconnect(self):
@@ -84,6 +98,7 @@ class CommunicationHandler(object):
                 connected = self.socket_connect()
             except ConnectionRefusedError as e:
                 print("Connection refused, trying again in 5 seconds " + str(e))
+                self.logger.error("Connection refused, trying again in 5 seconds " + str(e))
             time.sleep(5)
 
     def print_output(self, output_str):
@@ -98,6 +113,7 @@ class CommunicationHandler(object):
          :param output_str: string message that will go to the server
         """
         print("will send this " + str(output_str))
+        self.logger.debug("will send this message " + str(output_str))
         byte_array_message = str.encode(output_str)
         # We are packing the lenght of the packet to unsigned big endian
         #  struct to make sure that it is always constant length
@@ -113,6 +129,7 @@ class CommunicationHandler(object):
 
         except Exception as e:
             print("Socket probably dead eh? " + str(e))
+            self.logger.error("is_server_alive raised exception " +str(e))
             return False
         return True
 

@@ -40,9 +40,12 @@ if __name__ == '__main__':
     utility_handler = UtilityHandler()
     ssh_action_handler = SshActionHandler(settings)
     message_handler = MessageHandler()
+
+
     # Intialize spesific handlers
     message_handler.action_handler = action_handler
     message_handler.utility_handler = utility_handler
+
     # Create a clientcontroller
     client_controller = ClientController(communication_handler, message_handler)
 
@@ -50,6 +53,8 @@ if __name__ == '__main__':
     action_handler.server = client_controller
     ssh_action_handler.server = client_controller
     utility_handler.server = client_controller
+
+
 
     action_handler.action_handlers["SSH"] = ssh_action_handler
 

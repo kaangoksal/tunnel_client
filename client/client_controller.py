@@ -63,7 +63,7 @@ class ClientController(object):
             self.initialize_threads()
         except Exception as e:
             print('Error in main: ' + str(e))
-            self.logger.error("Error in main "+ str(e))
+            self.logger.error("Error in main " + str(e))
         # print("Amigos I go")
 
     def register_signal_handler(self):
@@ -91,9 +91,8 @@ class ClientController(object):
         This method is for receiving messages, it puts the messages into the inbox queue
         :return:
         """
-        # TODO optimize blocking
         while self.status:
-
+            # Blocking call
             received_message = self.communication_handler.read_message()
 
             if received_message is not None and received_message != b'':
@@ -106,11 +105,11 @@ class ClientController(object):
 
                 except Exception as e:
                     print("Received bad message " + str(e) + " message was " + str(received_message))
-                    self.logger.error("Received bad message "+ str(e) + " message was " + str(received_message))
+                    self.logger.error("Received bad message " + str(e) + " message was " + str(received_message))
             elif not self.communication_handler.is_server_alive() and self.status:
 
                 print("fuck mate the server is dead! " + str(received_message))
-                self.logger.error("The server appears to be dead "+ str(received_message))
+                self.logger.error("The server appears to be dead " + str(received_message))
                 self.communication_handler.reconnect()
 
     def outbox_work(self):
@@ -119,20 +118,11 @@ class ClientController(object):
         from the outbox_queue
         :return:
         """
-        # TODO optimize blocking
-        # TODO Implement logger
         while self.status:
-            # print("Outbox Work Queue" + str(self.outbox_queue))
-            if self.outbox_queue.not_empty:
-
-                message = self.outbox_queue.get()
-                print("Message ready for departure " + str(message))
-                self.logger.debug("Message ready for departure " + str(message))
-                self.communication_handler.send_message(message.pack_to_json_string())
-
-            else:
-                time.sleep(0.1)
-            # print("Finished reading and sending")
+            message = self.outbox_queue.get(block=True)
+            print("Message ready for departure " + str(message))
+            self.logger.debug("Message ready for departure " + str(message))
+            self.communication_handler.send_message(message.pack_to_json_string())
 
     def main_logic(self):
         """
@@ -140,14 +130,9 @@ class ClientController(object):
         :return:
         """
         while self.status:
-
-            if not self.inbox_queue.empty():
-                message_block = self.inbox_queue.get()
-
-                self.message_handler.handle_message(message_block)
-            # time.sleep(5)
-            # ping_reply_message = Message(self.communication_handler.username, "server", "utility", "ping reply")
-            # self.outbox_queue.put(ping_reply_message)
+            # Blocking call
+            message_block = self.inbox_queue.get(block=True)
+            self.message_handler.handle_message(message_block)
 
     def initialize_threads(self):
         """
@@ -169,3 +154,25 @@ class ClientController(object):
         self.logic_thread = threading.Thread(target=self.main_logic)
         self.logic_thread.setName("Logic Thread")
         self.logic_thread.start()
+
+        # Experimental, this loop checks whether the threads are alive, if not, it restarts them.
+        while self.status:
+            if not self.receive_thread.is_alive():
+                self.logger.error("[Main Thread] receive thread is dead")
+                receive_thread = threading.Thread(target=self.inbox_work)
+                receive_thread.setName("Receive Thread")
+                receive_thread.start()
+
+            if not self.send_thread.is_alive():
+                self.logger.error("[Main Thread] send thread is dead")
+                send_thread = threading.Thread(target=self.outbox_work)
+                send_thread.setName("Send Thread")
+                send_thread.start()
+
+            if not self.logic_thread.is_alive():
+                self.logger.error("[Main Thread] message_router thread is dead")
+                message_router_thread = threading.Thread(target=self.main_logic)
+                message_router_thread.setName("Message Router Thread")
+                message_router_thread.start()
+
+            time.sleep(1)
