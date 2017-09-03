@@ -6,6 +6,7 @@ import socket
 import struct
 import sys
 import time
+import threading
 from Message import Message
 import logging
 
@@ -16,6 +17,9 @@ class CommunicationHandler(object):
         self.serverHost = host
         self.serverPort = port
         self.socket = None
+        self.lock = threading.Lock()
+        self.connected = False
+
         self.username = username
         self.password = password
         self.software_version = software_version
@@ -60,6 +64,7 @@ class CommunicationHandler(object):
 
     def socket_connect(self):
         """ Connect to a remote socket """
+        #with self.lock:
         try:
             self.socket.connect((self.serverHost, self.serverPort))
         except socket.error as e:
@@ -70,12 +75,12 @@ class CommunicationHandler(object):
         try:
 
             return_dict = {
-                'username': self.username,
-                'password': self.password,
-                'hostname': socket.gethostname(),
-                'host_system_username': str(getpass.getuser()),
-                'software_version': self.software_version
-            }
+                    'username': self.username,
+                    'password': self.password,
+                    'hostname': socket.gethostname(),
+                    'host_system_username': str(getpass.getuser()),
+                    'software_version': self.software_version
+               }
 
             return_string = json.dumps(return_dict, sort_keys=True, indent=4, separators=(',', ': '))
             # print(return_string)
@@ -92,21 +97,21 @@ class CommunicationHandler(object):
     def reconnect(self):
         self.socket.close()
         self.socket_create()
-        connected = False
-        while not connected:
+        self.connected = False
+        while not self.connected:
             try:
-                connected = self.socket_connect()
+                self.connected = self.socket_connect()
             except ConnectionRefusedError as e:
                 print("Connection refused, trying again in 5 seconds " + str(e))
                 self.logger.error("Connection refused, trying again in 5 seconds " + str(e))
             time.sleep(5)
 
-    def print_output(self, output_str):
-        """ Prints command output """
-        sent_message = str.encode(output_str + str(os.getcwd()) + '> ')
-        self.socket.send(struct.pack('>I', len(sent_message)) + sent_message)
-        print(output_str)
-        return
+    # def print_output(self, output_str):
+    #     """ Prints command output """
+    #     sent_message = str.encode(output_str + str(os.getcwd()) + '> ')
+    #     self.socket.send(struct.pack('>I', len(sent_message)) + sent_message)
+    #     print(output_str)
+    #     return
 
     def send_message(self, output_str):
         """ Sends message to the server
@@ -117,19 +122,19 @@ class CommunicationHandler(object):
         byte_array_message = str.encode(output_str)
         # We are packing the lenght of the packet to unsigned big endian
         #  struct to make sure that it is always constant length
+        #with self.lock:
         self.socket.send(struct.pack('>I', len(byte_array_message)) + byte_array_message)
-
-        return
+        print("Sent!")
 
     def is_server_alive(self):
-        server_conn = self.socket
         try:
             ping_message = Message(self.username, "server", "utility", "ping")
-            server_conn.send(str.encode(ping_message.pack_to_json_string()))
+            #server_conn.send(str.encode(ping_message.pack_to_json_string()))
+            self.send_message(ping_message)
 
         except Exception as e:
             print("Socket probably dead eh? " + str(e))
-            self.logger.error("is_server_alive raised exception " +str(e))
+            self.logger.error("is_server_alive raised exception " + str(e))
             return False
         return True
 
@@ -149,12 +154,30 @@ class CommunicationHandler(object):
         # Read the message data
         return self._recvall(self.socket, msglen)
 
-    @staticmethod
-    def _recvall(conn, n):
+    def read_message_from_connection(self, conn):
+        """ Read message length and unpack it into an integer
+        :param conn: the connection to the client, it is a socket object
+        """
+        raw_msglen = self._recvall(conn, 4)
+        if not raw_msglen:
+            return None
+
+        # We are unpacking a big endian struct which includes
+        # the length of the packet, struct makes sure that the header
+        # which includes the length is always 4 bytes in length. '>I'
+        # indicates that the struct is a unsigned integer big endian
+        # CS2110 game strong
+
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        # Read the message data
+        return self._recvall(conn, msglen)
+
+    def _recvall(self, conn, n):
         """ Helper function to recv n bytes or return None if EOF is hit
         :param n: length of the packet
         :param conn: socket to read from
         """
+        #with self.lock:
         data = b''
         while len(data) < n:
             packet = conn.recv(n - len(data))

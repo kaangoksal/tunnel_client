@@ -3,6 +3,7 @@ import threading
 import time
 import signal
 import logging
+import select
 import sys
 from Message import Message
 from queue import Queue
@@ -57,13 +58,14 @@ class ClientController(object):
                 self.logger.error("Error on socket connections:  %s" % str(e))
                 print("Error on socket connections: %s" % str(e))
                 time.sleep(5)
-            else:
+            else:  # This breaks when the connection succeeds
                 break
         try:
+            self.communication_handler.connected = True
             self.initialize_threads()
         except Exception as e:
-            print('Error in main: ' + str(e))
-            self.logger.error("Error in main " + str(e))
+            print('Could not initialize threads: ' + str(e))
+            self.logger.error("Could not initialize threads " + str(e))
         # print("Amigos I go")
 
     def register_signal_handler(self):
@@ -86,31 +88,62 @@ class ClientController(object):
         self.communication_handler.quit_gracefully()
         sys.exit(0)
 
+    # def inbox_work(self):
+    #     """
+    #     This method is for receiving messages, it puts the messages into the inbox queue
+    #     :return:
+    #     """
+    #     while self.status:
+    #
+    #         while not self.communication_handler.connected:
+    #             self.logger.error("Waiting for reconnection to the server, inbox work")
+    #             time.sleep(1)
+    #         # Blocking call
+    #         received_message = self.communication_handler.read_message()
+    #
+    #         if received_message is not None and received_message != b'':
+    #             print("received message " + received_message.decode("utf-8"))
+    #             json_string = received_message.decode("utf-8")
+    #             try:
+    #                 new_message = Message.json_string_to_message(json_string)
+    #
+    #                 self.inbox_queue.put(new_message)
+    #
+    #             except Exception as e:
+    #                 print("Received bad message " + str(e) + " message was " + str(received_message))
+    #                 self.logger.error("Received bad message " + str(e) + " message was " + str(received_message))
+    #         elif not self.communication_handler.is_server_alive() and self.status:
+    #
+    #             print("fuck mate the server is dead! " + str(received_message))
+    #             self.logger.error("The server appears to be dead " + str(received_message))
+    #             self.communication_handler.reconnect()
+
     def inbox_work(self):
-        """
-        This method is for receiving messages, it puts the messages into the inbox queue
-        :return:
-        """
         while self.status:
-            # Blocking call
-            received_message = self.communication_handler.read_message()
+            readable, writable, exceptional = select.select([self.communication_handler.socket], [], [])
+            print("Block resumed!")
+            for connection in readable:
+                received_message = self.communication_handler.read_message_from_connection(connection)
 
-            if received_message is not None and received_message != b'':
-                print("received message " + received_message.decode("utf-8"))
-                json_string = received_message.decode("utf-8")
-                try:
-                    new_message = Message.json_string_to_message(json_string)
+                if received_message is not None and received_message != b'':
+                    print("received message " + received_message.decode("utf-8"))
+                    json_string = received_message.decode("utf-8")
+                    try:
+                        new_message = Message.json_string_to_message(json_string)
 
-                    self.inbox_queue.put(new_message)
+                        self.inbox_queue.put(new_message)
 
-                except Exception as e:
-                    print("Received bad message " + str(e) + " message was " + str(received_message))
-                    self.logger.error("Received bad message " + str(e) + " message was " + str(received_message))
-            elif not self.communication_handler.is_server_alive() and self.status:
+                    except Exception as e:
+                        print("Received bad message " + str(e) + " message was " + str(received_message))
+                        self.logger.error("Received bad message " + str(e) + " message was " + str(received_message))
+                elif not self.communication_handler.is_server_alive() and self.status:
 
-                print("fuck mate the server is dead! " + str(received_message))
-                self.logger.error("The server appears to be dead " + str(received_message))
-                self.communication_handler.reconnect()
+                    print("fuck mate the server is dead! " + str(received_message))
+                    self.logger.error("The server appears to be dead " + str(received_message))
+                    self.communication_handler.reconnect()
+            print("end of a loop")
+
+
 
     def outbox_work(self):
         """
@@ -119,6 +152,10 @@ class ClientController(object):
         :return:
         """
         while self.status:
+            while not self.communication_handler.connected:
+                self.logger.error("Waiting for reconnection to the server, outbox work")
+                time.sleep(1)
+
             message = self.outbox_queue.get(block=True)
             print("Message ready for departure " + str(message))
             self.logger.debug("Message ready for departure " + str(message))
@@ -157,22 +194,25 @@ class ClientController(object):
 
         # Experimental, this loop checks whether the threads are alive, if not, it restarts them.
         while self.status:
-            if not self.receive_thread.is_alive():
-                self.logger.error("[Main Thread] receive thread is dead")
-                receive_thread = threading.Thread(target=self.inbox_work)
-                receive_thread.setName("Receive Thread")
-                receive_thread.start()
+            try:
+                if not self.receive_thread.is_alive():
+                    self.logger.error("[Main Thread] receive thread is dead")
+                    receive_thread = threading.Thread(target=self.inbox_work)
+                    receive_thread.setName("Receive Thread")
+                    receive_thread.start()
 
-            if not self.send_thread.is_alive():
-                self.logger.error("[Main Thread] send thread is dead")
-                send_thread = threading.Thread(target=self.outbox_work)
-                send_thread.setName("Send Thread")
-                send_thread.start()
+                if not self.send_thread.is_alive():
+                    self.logger.error("[Main Thread] send thread is dead")
+                    send_thread = threading.Thread(target=self.outbox_work)
+                    send_thread.setName("Send Thread")
+                    send_thread.start()
 
-            if not self.logic_thread.is_alive():
-                self.logger.error("[Main Thread] message_router thread is dead")
-                message_router_thread = threading.Thread(target=self.main_logic)
-                message_router_thread.setName("Message Router Thread")
-                message_router_thread.start()
-
+                if not self.logic_thread.is_alive():
+                    self.logger.error("[Main Thread] message_router thread is dead")
+                    message_router_thread = threading.Thread(target=self.main_logic)
+                    message_router_thread.setName("Message Router Thread")
+                    message_router_thread.start()
+            except Exception as e:
+                self.logger.error("Error restarting a new thread! ")
+                time.sleep(5)
             time.sleep(1)
