@@ -1,11 +1,28 @@
 **Version History**
 
+V 0.0.19 (Future)
+- Encrypt Communications
+- Check server certificate
+
+V 0.0.18 (Future)
+- Send logs to the server
+- Software update
+- Automate key registeration + generation
+
+V 0.0.17 (Future)
+- Different message types and commands
+- Agility cleanup
+
+V 0.0.16 (Future)
+- Seperate processes for actions
+
+V 0.0.15 (Deployed Beta)
+
+- Client sends the ping to the server
+- Client tries to establish a new connection if it does not receive a reply
 
 V 0.0.12
-
 - Replies to ping 
-
-
 
 V 0.0.1
 - Improved status message check for reverse ssh task
