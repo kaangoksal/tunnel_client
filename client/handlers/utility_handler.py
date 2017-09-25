@@ -1,5 +1,6 @@
 import json
 from Message import Message
+import time
 
 
 class UtilityHandler(object):
@@ -13,13 +14,12 @@ class UtilityHandler(object):
         :param message: the message itself
         :return:
         """
-        #try:
-        payload = json.loads(message.payload)
-        utility_type = payload["utility_type"]
+        payload = message.payload
+        utility_group = payload["utility_group"]
 
-        if utility_type == "PING":
-            print("Replying to ping")
-            ping_reply_message = Message(self.server.communication_handler.username, "server", "utility", "ping reply")
-            self.server.outbox_queue.put(ping_reply_message)
+        if utility_group == "ping":
+            print("Updating ping time!")
+            self.server.last_ping = int(round(time.time()))
+
         else:
             print("Unknown Utility command! " + str(message))

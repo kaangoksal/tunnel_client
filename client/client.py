@@ -95,6 +95,7 @@ class CommunicationHandler(object):
             return False
 
     def reconnect(self):
+        self.socket.shutdown(2)
         self.socket.close()
         self.socket_create()
         self.connected = False
@@ -105,13 +106,6 @@ class CommunicationHandler(object):
                 print("Connection refused, trying again in 5 seconds " + str(e))
                 self.logger.error("Connection refused, trying again in 5 seconds " + str(e))
             time.sleep(5)
-
-    # def print_output(self, output_str):
-    #     """ Prints command output """
-    #     sent_message = str.encode(output_str + str(os.getcwd()) + '> ')
-    #     self.socket.send(struct.pack('>I', len(sent_message)) + sent_message)
-    #     print(output_str)
-    #     return
 
     def send_message(self, output_str):
         """ Sends message to the server
@@ -126,17 +120,6 @@ class CommunicationHandler(object):
         self.socket.send(struct.pack('>I', len(byte_array_message)) + byte_array_message)
         print("Sent!")
 
-    def is_server_alive(self):
-        try:
-            ping_message = Message(self.username, "server", "utility", "ping")
-            #server_conn.send(str.encode(ping_message.pack_to_json_string()))
-            self.send_message(ping_message)
-
-        except Exception as e:
-            print("Socket probably dead eh? " + str(e))
-            self.logger.error("is_server_alive raised exception " + str(e))
-            return False
-        return True
 
     def read_message(self):
         """ Read message length and unpack it into an integer

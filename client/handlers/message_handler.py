@@ -7,7 +7,7 @@ Date: 22 July 2017
 """
 
 from Message import Message
-
+from Message import MessageType
 
 class MessageHandler(object):
     def __init__(self, server=None):
@@ -16,9 +16,9 @@ class MessageHandler(object):
         self.server = server
 
     def handle_message(self, message):
-        if message.type == "action":
+        if message.type == MessageType.action:
             self.action_handler.handle_message(message)
-        elif message.type == "utility":
+        elif message.type == MessageType.utility:
             self.utility_handler.handle_message(message)
         else:
             print("Message can't be handled " + str(message))

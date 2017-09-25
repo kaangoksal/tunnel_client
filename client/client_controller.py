@@ -7,6 +7,7 @@ import select
 import sys
 from Message import Message
 from queue import Queue
+import datetime
 
 
 class ClientController(object):
@@ -37,12 +38,18 @@ class ClientController(object):
         self.running_processes = {}
 
         self.status = True
+
         self.receive_thread = None
         self.send_thread = None
         self.logic_thread = None
         self.ping_thread = None
 
-        self.ping_time = 20
+        self.ping_time = 5
+        self.ping_deadline = 60
+        self.last_ping = int(round(time.time()))
+
+        self.server_alive_check = 0
+        self.server_connection_error_threshold = 2
 
     def run(self):
         """
@@ -91,89 +98,95 @@ class ClientController(object):
         self.communication_handler.quit_gracefully()
         sys.exit(0)
 
-    # def inbox_work(self):
-    #     """
-    #     This method is for receiving messages, it puts the messages into the inbox queue
-    #     :return:
-    #     """
-    #     while self.status:
-    #
-    #         while not self.communication_handler.connected:
-    #             self.logger.error("Waiting for reconnection to the server, inbox work")
-    #             time.sleep(1)
-    #         # Blocking call
-    #         received_message = self.communication_handler.read_message()
-    #
-    #         if received_message is not None and received_message != b'':
-    #             print("received message " + received_message.decode("utf-8"))
-    #             json_string = received_message.decode("utf-8")
-    #             try:
-    #                 new_message = Message.json_string_to_message(json_string)
-    #
-    #                 self.inbox_queue.put(new_message)
-    #
-    #             except Exception as e:
-    #                 print("Received bad message " + str(e) + " message was " + str(received_message))
-    #                 self.logger.error("Received bad message " + str(e) + " message was " + str(received_message))
-    #         elif not self.communication_handler.is_server_alive() and self.status:
-    #
-    #             print("fuck mate the server is dead! " + str(received_message))
-    #             self.logger.error("The server appears to be dead " + str(received_message))
-    #             self.communication_handler.reconnect()
-
     def inbox_work(self):
         while self.status:
-            readable, writable, exceptional = select.select([self.communication_handler.socket], [], [])
-            print("Block resumed!")
-            for connection in readable:
-                received_message = self.communication_handler.read_message_from_connection(connection)
+                while self.communication_handler.connected:
+                    readable, writable, exceptional = select.select([self.communication_handler.socket], [], [])
+                    #print("Block resumed!")
+                    for connection in readable:
 
-                if received_message is not None and received_message != b'':
-                    print("received message " + received_message.decode("utf-8"))
-                    json_string = received_message.decode("utf-8")
-                    try:
-                        new_message = Message.json_string_to_message(json_string)
+                        try:
+                            received_message = self.communication_handler.read_message_from_connection(connection)
+                        except Exception as e:
+                            self.logger.error("[inbox_work] Exception occured while reading socket " + str(e))
+                            received_message = None
 
-                        self.inbox_queue.put(new_message)
+                        if received_message is not None and received_message != b'':
+                            print("[inbox_work] received message " + received_message.decode("utf-8"))
+                            json_string = received_message.decode("utf-8")
+                            try:
+                                new_message = Message.json_string_to_message(json_string)
 
-                    except Exception as e:
-                        print("Received bad message " + str(e) + " message was " + str(received_message))
-                        self.logger.error("Received bad message " + str(e) + " message was " + str(received_message))
-                elif not self.communication_handler.is_server_alive() and self.status:
+                                self.inbox_queue.put(new_message)
 
-                    print("fuck mate the server is dead! " + str(received_message))
-                    self.logger.error("The server appears to be dead " + str(received_message))
-                    self.communication_handler.reconnect()
-            print("end of a loop")
+                            except Exception as e:
+                                print("[inbox_work] Received bad message " + str(e) + " message was " + str(received_message))
+                                self.logger.error("[inbox_work] Received bad message " + str(e) + " message was " + str(received_message))
+                        elif not self.is_server_alive() and self.status:
+
+                            print("[inbox_work] fuck mate the server is dead! " + str(received_message))
+                            self.logger.error("[inbox_work] The server appears to be dead " + str(received_message))
+                            #self.communication_handler.reconnect()
+                    #print("end of a loop")
+                time.sleep(5)
 
     def outbox_work(self):
         """
-        This method is for sending messages, it is launched by a thread, it sends the messages to the server
+        This method is for sending messages, it is launched by a thread,
+        it sends the messages to the server, it terminates if the connections breaks
         from the outbox_queue
         :return:
         """
         while self.status:
-            while not self.communication_handler.connected:
-                self.logger.error("Waiting for reconnection to the server, outbox work")
-                time.sleep(1)
+            time.sleep(5) # waiting for reconnectione!
+            while self.communication_handler.connected:
+                # while not self.communication_handler.connected:
+                #     self.logger.error("Waiting for reconnection to the server, outbox work")
+                #     time.sleep(1)
 
-            message = self.outbox_queue.get(block=True)
-            print("Message ready for departure " + str(message))
-            self.logger.debug("Message ready for departure " + str(message))
-            try:
-                self.communication_handler.send_message(message.pack_to_json_string())
-            except Exception as e:
-                self.logger.error("Exception occurred during send " + str(e))
-                if not self.communication_handler.is_server_alive() and self.status:
-                    print("fuck mate the server is dead! Couldn't send the message " + str(message))
-                    self.logger.error("The server appears to be dead Couldn't send the messsage " + str(message))
-                    self.communication_handler.reconnect()
+                message = self.outbox_queue.get(block=True)
+                print("[outbox_work] Message ready for departure " + str(message))
+                self.logger.debug("[outbox_work] Message ready for departure " + str(message))
+                try:
+                    self.communication_handler.send_message(message.pack_to_json_string())
+                except Exception as e:
+                    self.logger.error("[outbox_work] Exception occurred during send " + str(e))
+                    if not self.is_server_alive() and self.status:
+                        self.outbox_queue.put(message) # put back the message because it was not sent!
+                        print("[outbox_work] fuck mate the server is dead! Couldn't send the message " + str(message))
+                        self.logger.error("[outbox_work] The server appears to be dead Couldn't send the message "
+                                          + str(message))
+
 
     def ping_work(self):
         while self.status:
-            time.sleep(self.ping_time)
-            ping_message = Message(self.communication_handler.username, "server", "utility", "ping")
-            self.outbox_queue.put(ping_message)
+            time.sleep(5)
+            while self.communication_handler.connected:
+                seconds_now = int(round(time.time()))
+                if seconds_now - self.last_ping < self.ping_deadline:
+
+                    time.sleep(self.ping_time)
+
+                    ping_payload = {"utility_group": "ping"}
+
+                    ping_message = Message(self.communication_handler.username, "server", "utility", ping_payload)
+
+                    self.outbox_queue.put(ping_message)
+                else:
+
+                    # self.communication_handler.connected = False # We don't need this actually
+                    print("Disconnected! ")
+                    self.communication_handler.connected = False
+                    #
+
+    def is_server_alive(self):
+        self.server_alive_check += 1
+        if self.server_alive_check < self.server_connection_error_threshold:
+            self.communication_handler.connected = False
+            return True
+        else:
+            return False
+
 
     def main_logic(self):
         """
@@ -213,31 +226,38 @@ class ClientController(object):
         # Experimental, this loop checks whether the threads are alive, if not, it restarts them.
         while self.status:
             try:
-                if not self.receive_thread.is_alive():
-                    self.logger.error("[Main Thread] receive thread is dead")
+                if not self.communication_handler.connected:
+                    self.logger.error("Lost connection, will start trying to reconnect")
+                    self.communication_handler.reconnect()
+                    self.logger.info("Connection resumed, resuming operations")
+                    self.server_alive_check = 0
+                    self.last_ping = int(round(time.time()))
+
+                if not self.receive_thread.is_alive() and self.communication_handler.connected:
+                    self.logger.error("[Main Thread] receive thread is dead will restart")
                     self.receive_thread = threading.Thread(target=self.inbox_work)
                     self.receive_thread.setName("Receive Thread")
                     self.receive_thread.start()
 
-                if not self.send_thread.is_alive():
-                    self.logger.error("[Main Thread] send thread is dead")
+                if not self.send_thread.is_alive() and self.communication_handler.connected:
+                    self.logger.error("[Main Thread] send thread is dead will restart")
                     self.send_thread = threading.Thread(target=self.outbox_work)
                     self.send_thread.setName("Send Thread")
                     self.send_thread.start()
 
                 if not self.logic_thread.is_alive():
-                    self.logger.error("[Main Thread] message_router thread is dead")
+                    self.logger.error("[Main Thread] message_router thread is dead will restart")
                     self.logic_thread = threading.Thread(target=self.main_logic)
                     self.logic_thread.setName("Message Router Thread")
                     self.logic_thread.start()
 
-                if not self.ping_thread.is_alive():
-                    self.logger.error("[Main Thread] ping thread is dead")
+                if not self.ping_thread.is_alive() and self.communication_handler.connected:
+                    self.logger.error("[Main Thread] ping thread is dead will restart")
                     self.ping_thread = threading.Thread(target=self.ping_work)
                     self.ping_thread.setName("Ping Thread")
                     self.ping_thread.start()
 
             except Exception as e:
-                self.logger.error("Error restarting a new thread! ")
+                self.logger.error("Error restarting a new thread! " + str(e))
                 time.sleep(5)
             time.sleep(1)
