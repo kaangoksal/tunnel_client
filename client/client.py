@@ -25,7 +25,7 @@ class CommunicationHandler(object):
         self.software_version = software_version
 
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
         handler = logging.FileHandler('client.log')
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

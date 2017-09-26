@@ -49,7 +49,7 @@ class ClientController(object):
         self.last_ping = int(round(time.time()))
 
         self.server_alive_check = 0
-        self.server_connection_error_threshold = 2
+        self.server_connection_error_threshold = 5
 
     def run(self):
         """
@@ -76,7 +76,6 @@ class ClientController(object):
         except Exception as e:
             print('Could not initialize threads: ' + str(e))
             self.logger.error("Could not initialize threads " + str(e))
-        # print("Amigos I go")
 
     def register_signal_handler(self):
         """
@@ -157,10 +156,9 @@ class ClientController(object):
                         self.logger.error("[outbox_work] The server appears to be dead Couldn't send the message "
                                           + str(message))
 
-
     def ping_work(self):
         while self.status:
-            time.sleep(5)
+            time.sleep(1)
             while self.communication_handler.connected:
                 seconds_now = int(round(time.time()))
                 if seconds_now - self.last_ping < self.ping_deadline:
@@ -176,17 +174,18 @@ class ClientController(object):
 
                     # self.communication_handler.connected = False # We don't need this actually
                     print("Disconnected! ")
+                    self.logger.warning("[ping work] ping reply expired, setting connected to false")
                     self.communication_handler.connected = False
-                    #
 
     def is_server_alive(self):
         self.server_alive_check += 1
         if self.server_alive_check < self.server_connection_error_threshold:
-            self.communication_handler.connected = False
+            #self.communication_handler.connected = False
             return True
         else:
+            self.logger.warning("[is_server_alive] error threshold passed, triggering disconnect")
+            self.communication_handler.connected = False
             return False
-
 
     def main_logic(self):
         """
@@ -230,6 +229,7 @@ class ClientController(object):
                     self.logger.error("Lost connection, will start trying to reconnect")
                     self.communication_handler.reconnect()
                     self.logger.info("Connection resumed, resuming operations")
+
                     self.server_alive_check = 0
                     self.last_ping = int(round(time.time()))
 
