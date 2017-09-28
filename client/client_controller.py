@@ -180,7 +180,6 @@ class ClientController(object):
     def is_server_alive(self):
         self.server_alive_check += 1
         if self.server_alive_check < self.server_connection_error_threshold:
-            #self.communication_handler.connected = False
             return True
         else:
             self.logger.warning("[is_server_alive] error threshold passed, triggering disconnect")
@@ -224,40 +223,50 @@ class ClientController(object):
 
         # Experimental, this loop checks whether the threads are alive, if not, it restarts them.
         while self.status:
-            try:
-                if not self.communication_handler.connected:
-                    self.logger.error("Lost connection, will start trying to reconnect")
+            if not self.communication_handler.connected:
+                self.logger.error("[Main Thread] Lost connection, will start trying to reconnect")
+                try:
                     self.communication_handler.reconnect()
-                    self.logger.info("Connection resumed, resuming operations")
-
+                    self.logger.info("[Main Thread] Connection resumed, resuming operations")
                     self.server_alive_check = 0
                     self.last_ping = int(round(time.time()))
+                except Exception as e:
+                    self.logger.error("[Main Thread] error reconnecting: " +str(e))
 
-                if not self.receive_thread.is_alive() and self.communication_handler.connected:
-                    self.logger.error("[Main Thread] receive thread is dead will restart")
+            if not self.receive_thread.is_alive() and self.communication_handler.connected:
+                self.logger.error("[Main Thread] receive thread is dead will restart")
+                try:
                     self.receive_thread = threading.Thread(target=self.inbox_work)
                     self.receive_thread.setName("Receive Thread")
                     self.receive_thread.start()
+                except Exception as e:
+                    self.logger.error("[Main Thread] Error restarting receive thread " + str(e))
 
-                if not self.send_thread.is_alive() and self.communication_handler.connected:
-                    self.logger.error("[Main Thread] send thread is dead will restart")
+            if not self.send_thread.is_alive() and self.communication_handler.connected:
+                self.logger.error("[Main Thread] send thread is dead will restart")
+                try:
                     self.send_thread = threading.Thread(target=self.outbox_work)
                     self.send_thread.setName("Send Thread")
                     self.send_thread.start()
+                except Exception as e:
+                    self.logger.error("[Main Thread] Error restarting send thread "+ str(e))
 
-                if not self.logic_thread.is_alive():
-                    self.logger.error("[Main Thread] message_router thread is dead will restart")
+            if not self.logic_thread.is_alive():
+                self.logger.error("[Main Thread] message_router thread is dead will restart")
+                try:
                     self.logic_thread = threading.Thread(target=self.main_logic)
                     self.logic_thread.setName("Message Router Thread")
                     self.logic_thread.start()
+                except Exception as e:
+                    self.logger.error("[Main Thread] error restarting logic thread " + str(e))
 
-                if not self.ping_thread.is_alive() and self.communication_handler.connected:
-                    self.logger.error("[Main Thread] ping thread is dead will restart")
+            if not self.ping_thread.is_alive() and self.communication_handler.connected:
+                self.logger.error("[Main Thread] ping thread is dead will restart")
+                try:
                     self.ping_thread = threading.Thread(target=self.ping_work)
                     self.ping_thread.setName("Ping Thread")
                     self.ping_thread.start()
+                except Exception as e:
+                    self.logger.error("[Main Thread] Error restarting ping thread " + str(e))
 
-            except Exception as e:
-                self.logger.error("Error restarting a new thread! " + str(e))
-                time.sleep(5)
-            time.sleep(1)
+        time.sleep(1)
