@@ -3,6 +3,7 @@ import threading
 import time
 import signal
 import logging
+import traceback
 import select
 import sys
 from Message import Message
@@ -112,6 +113,7 @@ class ClientController(object):
 
                         if received_message is not None and received_message != b'':
                             print("[inbox_work] received message " + received_message.decode("utf-8"))
+                            self.logger.debug("[inbox_work] received message " +  str(received_message.decode("utf-8")) )
                             json_string = received_message.decode("utf-8")
                             try:
                                 new_message = Message.json_string_to_message(json_string)
@@ -231,7 +233,9 @@ class ClientController(object):
                     self.server_alive_check = 0
                     self.last_ping = int(round(time.time()))
                 except Exception as e:
-                    self.logger.error("[Main Thread] error reconnecting: " +str(e))
+                    self.logger.error("[Main Thread] error reconnecting: " + str(e))
+                    self.logger.error("[Main Thread] " + str(traceback.format_exc()))
+            time.sleep(10)
 
             if not self.receive_thread.is_alive() and self.communication_handler.connected:
                 self.logger.error("[Main Thread] receive thread is dead will restart")
@@ -241,6 +245,7 @@ class ClientController(object):
                     self.receive_thread.start()
                 except Exception as e:
                     self.logger.error("[Main Thread] Error restarting receive thread " + str(e))
+                    self.logger.error("[Main Thread] " + str(traceback.format_exc()))
 
             if not self.send_thread.is_alive() and self.communication_handler.connected:
                 self.logger.error("[Main Thread] send thread is dead will restart")
@@ -249,7 +254,8 @@ class ClientController(object):
                     self.send_thread.setName("Send Thread")
                     self.send_thread.start()
                 except Exception as e:
-                    self.logger.error("[Main Thread] Error restarting send thread "+ str(e))
+                    self.logger.error("[Main Thread] Error restarting send thread " + str(e))
+                    self.logger.error("[Main Thread] " + str(traceback.format_exc()))
 
             if not self.logic_thread.is_alive():
                 self.logger.error("[Main Thread] message_router thread is dead will restart")
@@ -259,6 +265,7 @@ class ClientController(object):
                     self.logic_thread.start()
                 except Exception as e:
                     self.logger.error("[Main Thread] error restarting logic thread " + str(e))
+                    self.logger.error("[Main Thread] " + str(traceback.format_exc()))
 
             if not self.ping_thread.is_alive() and self.communication_handler.connected:
                 self.logger.error("[Main Thread] ping thread is dead will restart")
@@ -268,5 +275,6 @@ class ClientController(object):
                     self.ping_thread.start()
                 except Exception as e:
                     self.logger.error("[Main Thread] Error restarting ping thread " + str(e))
+                    self.logger.error("[Main Thread] " + str(traceback.format_exc()))
 
         time.sleep(1)
