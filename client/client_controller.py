@@ -184,7 +184,7 @@ class ClientController(object):
                     self.logger.warning("[ping work] ping reply expired, setting connected to false " + str(seconds_now - self.last_ping))
                     self.logger.warning("Self last ping " + str(self.last_ping))
                     self.logger.warning("Now " + str(seconds_now))
-                    
+
                     self.communication_handler.connected = False
 
     def is_server_alive(self):

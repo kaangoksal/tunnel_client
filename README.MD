@@ -12,12 +12,13 @@ V 0.0.18 (Future)
 V 0.0.17 (Future)
 - Different message types and commands
 - Agility cleanup
+- Clean up timings
 
 V 0.0.16 (Future)
 - Seperate processes for actions
+- Solved reconnection problem due to a race condition
 
 V 0.0.15 (Deployed Beta)
-
 - Client sends the ping to the server
 - Client tries to establish a new connection if it does not receive a reply
 
