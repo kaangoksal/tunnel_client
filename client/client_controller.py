@@ -175,7 +175,10 @@ class ClientController(object):
                 else:
 
                     # self.communication_handler.connected = False # We don't need this actually
-                    print("Disconnected! ")
+                    print("[ping work] ping reply expired, setting connected to false " + str(seconds_now - self.last_ping))
+                    print("Self last ping ", self.last_ping)
+                    print("Now ", seconds_now)
+
                     self.logger.warning("[ping work] ping reply expired, setting connected to false")
                     self.communication_handler.connected = False
 
@@ -184,6 +187,7 @@ class ClientController(object):
         if self.server_alive_check < self.server_connection_error_threshold:
             return True
         else:
+            print("[is_server_alive] error threshold passed, triggering disconnect")
             self.logger.warning("[is_server_alive] error threshold passed, triggering disconnect")
             self.communication_handler.connected = False
             return False
