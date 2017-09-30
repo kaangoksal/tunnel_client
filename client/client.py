@@ -9,6 +9,7 @@ import time
 import threading
 from Message import Message
 import logging
+import traceback
 
 
 class CommunicationHandler(object):
@@ -95,8 +96,15 @@ class CommunicationHandler(object):
             return False
 
     def reconnect(self):
-        self.socket.shutdown(2)
+        # for some reason if the socket is dead you can't turn it off... lame...
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except Exception as e:
+            print("[reconnect] " + str(e))
+            self.logger.error("[reconnect] " + str(traceback.format_exc()))
+
         self.socket.close()
+
         self.socket_create()
         self.connected = False
         while not self.connected:
