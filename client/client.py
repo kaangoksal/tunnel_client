@@ -29,10 +29,12 @@ class CommunicationHandler(object):
         self.logger.setLevel(logging.INFO)
 
         handler = logging.FileHandler('client.log')
+        console_out = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
 
         self.logger.addHandler(handler)
+        self.logger.addHandler(console_out)
         self.logger.info("client started")
 
     def register_signal_handler(self):
@@ -113,7 +115,9 @@ class CommunicationHandler(object):
             except ConnectionRefusedError as e:
                 print("Connection refused, trying again in 5 seconds " + str(e))
                 self.logger.error("Connection refused, trying again in 5 seconds " + str(e))
-            time.sleep(5)
+                time.sleep(5)
+
+        print("Reconnect successful ")
 
     def send_message(self, output_str):
         """ Sends message to the server

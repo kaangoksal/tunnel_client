@@ -27,6 +27,8 @@ class ClientController(object):
         handler.setFormatter(formatter)
 
         self.logger.addHandler(handler)
+        console_out = logging.StreamHandler(sys.stdout)
+        self.logger.addHandler(console_out)
         self.logger.info("client started")
 
         self.inbox_queue = Queue()
@@ -67,7 +69,7 @@ class ClientController(object):
                 self.communication_handler.socket_connect()
             except Exception as e:
                 self.logger.error("Error on socket connections:  %s" % str(e))
-                print("Error on socket connections: %s" % str(e))
+                # print("Error on socket connections: %s" % str(e))
                 time.sleep(5)
             else:  # This breaks when the connection succeeds
                 break
@@ -75,7 +77,7 @@ class ClientController(object):
             self.communication_handler.connected = True
             self.initialize_threads()
         except Exception as e:
-            print('Could not initialize threads: ' + str(e))
+            # print('Could not initialize threads: ' + str(e))
             self.logger.error("Could not initialize threads " + str(e))
 
     def register_signal_handler(self):
@@ -102,7 +104,7 @@ class ClientController(object):
         while self.status:
                 while self.communication_handler.connected:
                     readable, writable, exceptional = select.select([self.communication_handler.socket], [], [])
-                    #print("Block resumed!")
+                    ## print("Block resumed!")
                     for connection in readable:
 
                         try:
@@ -112,7 +114,7 @@ class ClientController(object):
                             received_message = None
 
                         if received_message is not None and received_message != b'':
-                            print("[inbox_work] received message " + received_message.decode("utf-8"))
+                            # print("[inbox_work] received message " + received_message.decode("utf-8"))
                             self.logger.debug("[inbox_work] received message " +  str(received_message.decode("utf-8")) )
                             json_string = received_message.decode("utf-8")
                             try:
@@ -121,14 +123,14 @@ class ClientController(object):
                                 self.inbox_queue.put(new_message)
 
                             except Exception as e:
-                                print("[inbox_work] Received bad message " + str(e) + " message was " + str(received_message))
+                                # print("[inbox_work] Received bad message " + str(e) + " message was " + str(received_message))
                                 self.logger.error("[inbox_work] Received bad message " + str(e) + " message was " + str(received_message))
                         elif not self.is_server_alive() and self.status:
 
-                            print("[inbox_work] fuck mate the server is dead! " + str(received_message))
+                            # print("[inbox_work] fuck mate the server is dead! " + str(received_message))
                             self.logger.error("[inbox_work] The server appears to be dead " + str(received_message))
                             #self.communication_handler.reconnect()
-                    #print("end of a loop")
+                    ## print("end of a loop")
                 time.sleep(5)
 
     def outbox_work(self):
@@ -146,7 +148,7 @@ class ClientController(object):
                 #     time.sleep(1)
 
                 message = self.outbox_queue.get(block=True)
-                print("[outbox_work] Message ready for departure " + str(message))
+                # print("[outbox_work] Message ready for departure " + str(message))
                 self.logger.debug("[outbox_work] Message ready for departure " + str(message))
                 try:
                     self.communication_handler.send_message(message.pack_to_json_string())
@@ -154,7 +156,7 @@ class ClientController(object):
                     self.logger.error("[outbox_work] Exception occurred during send " + str(e))
                     if not self.is_server_alive() and self.status:
                         self.outbox_queue.put(message) # put back the message because it was not sent!
-                        print("[outbox_work] fuck mate the server is dead! Couldn't send the message " + str(message))
+                        # print("[outbox_work] fuck mate the server is dead! Couldn't send the message " + str(message))
                         self.logger.error("[outbox_work] The server appears to be dead Couldn't send the message "
                                           + str(message))
 
@@ -175,11 +177,14 @@ class ClientController(object):
                 else:
 
                     # self.communication_handler.connected = False # We don't need this actually
-                    print("[ping work] ping reply expired, setting connected to false " + str(seconds_now - self.last_ping))
-                    print("Self last ping ", self.last_ping)
-                    print("Now ", seconds_now)
+                    # print("[ping work] ping reply expired, setting connected to false " + str(seconds_now - self.last_ping))
+                    # print("Self last ping ", self.last_ping)
+                    # print("Now ", seconds_now)
 
-                    self.logger.warning("[ping work] ping reply expired, setting connected to false")
+                    self.logger.warning("[ping work] ping reply expired, setting connected to false " + str(seconds_now - self.last_ping))
+                    self.logger.warning("Self last ping " + str(self.last_ping))
+                    self.logger.warning("Now " + str(seconds_now))
+                    
                     self.communication_handler.connected = False
 
     def is_server_alive(self):
@@ -187,7 +192,7 @@ class ClientController(object):
         if self.server_alive_check < self.server_connection_error_threshold:
             return True
         else:
-            print("[is_server_alive] error threshold passed, triggering disconnect")
+            # print("[is_server_alive] error threshold passed, triggering disconnect")
             self.logger.warning("[is_server_alive] error threshold passed, triggering disconnect")
             self.communication_handler.connected = False
             return False
