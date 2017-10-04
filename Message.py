@@ -51,8 +51,8 @@ class Message(object):
         This method is used to pack message into a json string for sending to someother client.
         :return: Json String representation of a message
         """
-        print(self)
-        print(type(self.type))
+        #print(self)
+        #print(type(self.type))
         return_dict = {
             "sender": self.sender,
             "to": self.to,

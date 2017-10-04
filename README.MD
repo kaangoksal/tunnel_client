@@ -29,6 +29,12 @@ V 0.0.1
 - Improved status message check for reverse ssh task
 - Added software version
 
+**Debugging Info**
+helps to see packets going around  
+`sudo tcpflow -i any -C -J port 9000`
+
+This is also a thing but didn't use it much  
+`tcpdump port 9000`
 
 **Setup Instructions**
 

@@ -244,7 +244,7 @@ class ClientController(object):
                 except Exception as e:
                     self.logger.error("[Main Thread] error reconnecting: " + str(e))
                     self.logger.error("[Main Thread] " + str(traceback.format_exc()))
-            time.sleep(10)
+                    time.sleep(10)
 
             if not self.receive_thread.is_alive() and self.communication_handler.connected:
                 self.logger.error("[Main Thread] receive thread is dead will restart")
