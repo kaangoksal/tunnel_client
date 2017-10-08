@@ -14,6 +14,7 @@ class MessageHandler(object):
         self.action_handler = None
         self.utility_handler = None
         self.server = server
+        self.logger = server.logger
 
     def handle_message(self, message):
         if message.type == MessageType.action:
@@ -22,7 +23,8 @@ class MessageHandler(object):
             self.utility_handler.handle_message(message)
         else:
             print("Message can't be handled " + str(message))
+            self.logger.error("[MessageHandler] message can't be handled! ", message)
 
     def __str__(self):
-        return "MessageHandler Object with action handler: "+str(self.action_handler)
+        return "MessageHandler Object with action handler: " + str(self.action_handler)
 

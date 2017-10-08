@@ -6,6 +6,7 @@ class ActionHandler(object):
     def __init__(self, server=None):
         self.server = server
         self.action_handlers = {}
+        self.logger = server.logger
 
     def handle_message(self, message):
         """
