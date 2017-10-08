@@ -49,13 +49,13 @@ if __name__ == '__main__':
     # Create a clientcontroller
     client_controller = ClientController(communication_handler, message_handler)
 
-    message_handler.server = client_controller
-    action_handler.server = client_controller
+    #message_handler.server = client_controller
+    #action_handler.server = client_controller
+    #utility_handler.server = client_controller
+
     ssh_action_handler.server = client_controller
-    utility_handler.server = client_controller
 
-
-
+    #add action handlers dynamically
     action_handler.action_handlers["SSH"] = ssh_action_handler
 
     client_controller.run()

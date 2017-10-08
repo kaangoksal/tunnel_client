@@ -6,7 +6,14 @@ class ActionHandler(object):
     def __init__(self, server=None):
         self.server = server
         self.action_handlers = {}
-        self.logger = server.logger
+
+    def initialize(self, server):
+        self.server = server
+        if self.server is not None:
+            self.logger = self.server.logger
+            #TODO Initialize spesific handlers here
+        else:
+            print("ERROR! ActionHandler is not initialized properly!")
 
     def handle_message(self, message):
         """

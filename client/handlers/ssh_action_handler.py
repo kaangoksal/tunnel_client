@@ -17,10 +17,19 @@ class SshActionHandler(object):
         """
         print("SSH Action Handler Started")
         self.server = server
+        self.logger = None
         self.active_ssh_tasks = {}
         self.key_location = settings["ssh_key_location"]
         self.server_addr = settings["ssh_server_addr"]
         self.server_username = settings["ssh_server_username"]
+
+    def initialize(self, server):
+        self.server = server
+        if self.server is not None:
+            self.logger = self.server.logger
+        else:
+            print("ERROR! SSHActionHandler is not initialized properly!")
+
 
     def handle_message(self, message):
         """

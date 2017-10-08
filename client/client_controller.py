@@ -28,7 +28,7 @@ class ClientController(object):
 
         self.logger.addHandler(handler)
         console_out = logging.StreamHandler(sys.stdout)
-        self.logger.addHandler(console_out)
+        #self.logger.addHandler(console_out)
         self.logger.info("client started")
 
         self.inbox_queue = Queue()
@@ -36,6 +36,8 @@ class ClientController(object):
 
         self.communication_handler = comm_handler
         self.message_handler = message_handler
+
+        self.message_handler.initialize(self)
 
         self.tasks = {}
         self.running_processes = {}
@@ -54,6 +56,8 @@ class ClientController(object):
         self.server_alive_check = 0
         self.server_connection_error_threshold = 5
 
+        self.re_connections = 0
+        self.connection_date = datetime.datetime.now()
     def run(self):
         """
         Starts the client controller, also registers termination signal handlers.
@@ -104,7 +108,7 @@ class ClientController(object):
         while self.status:
                 while self.communication_handler.connected:
                     readable, writable, exceptional = select.select([self.communication_handler.socket], [], [])
-                    ## print("Block resumed!")
+                    # print("Block resumed!")
                     for connection in readable:
 
                         try:
@@ -141,14 +145,12 @@ class ClientController(object):
         :return:
         """
         while self.status:
-            time.sleep(5) # waiting for reconnectione!
             while self.communication_handler.connected:
                 # while not self.communication_handler.connected:
                 #     self.logger.error("Waiting for reconnection to the server, outbox work")
                 #     time.sleep(1)
 
                 message = self.outbox_queue.get(block=True)
-                # print("[outbox_work] Message ready for departure " + str(message))
                 try:
                     self.communication_handler.send_message(message.pack_to_json_string())
                     self.logger.debug("[outbox_work] Message sent " + str(message))
@@ -159,15 +161,15 @@ class ClientController(object):
                         # print("[outbox_work] fuck mate the server is dead! Couldn't send the message " + str(message))
                         self.logger.error("[outbox_work] The server appears to be dead Couldn't send the message "
                                           + str(message))
+            time.sleep(5)  # waiting for reconnectione!
 
     def ping_work(self):
         while self.status:
-            time.sleep(1)
             while self.communication_handler.connected:
                 seconds_now = int(round(time.time()))
                 if seconds_now - self.last_ping < self.ping_deadline:
 
-                    time.sleep(self.ping_time)
+                    time.sleep(self.ping_time) # we don't want to have a fucking cpu spin
 
                     ping_payload = {"utility_group": "ping"}
 
@@ -203,9 +205,9 @@ class ClientController(object):
         :return:
         """
         while self.status:
-            # Blocking call
+            # Blocking call so no cpu spin, chill brah
             message_block = self.inbox_queue.get(block=True)
-            self.logger.debug("[main logic] handling a message! ", message_block)
+            self.logger.debug("[main logic] handling a message! " + str(message_block))
             self.message_handler.handle_message(message_block)
 
     def initialize_threads(self):
@@ -213,6 +215,7 @@ class ClientController(object):
         This function initializes the threads that makes the server work
         :return:
         """
+        # TODO create higher level threads! ones that can be restarted
 
         # This thread receives messages from the server
         self.receive_thread = threading.Thread(target=self.inbox_work)
@@ -233,8 +236,16 @@ class ClientController(object):
         self.ping_thread.setName("Ping Thread")
         self.ping_thread.start()
 
+        from client.logic.console_ui import ClientUI
+
+        shit_ui = ClientUI()
+        shit_ui.client_controller = self
+        shit_ui.start()
+
+
         # Experimental, this loop checks whether the threads are alive, if not, it restarts them.
         while self.status:
+            time.sleep(1) # this prohibits fackin cpu spin
             if not self.communication_handler.connected:
                 self.logger.error("[Main Thread] Lost connection, will start trying to reconnect")
                 try:
@@ -242,6 +253,9 @@ class ClientController(object):
                     self.logger.info("[Main Thread] Connection resumed, resuming operations")
                     self.server_alive_check = 0
                     self.last_ping = int(round(time.time()))
+                    self.re_connections += 1
+                    self.connection_date = datetime.datetime.now()
+
                 except Exception as e:
                     self.logger.error("[Main Thread] error reconnecting: " + str(e))
                     self.logger.error("[Main Thread] " + str(traceback.format_exc()))
@@ -287,4 +301,4 @@ class ClientController(object):
                     self.logger.error("[Main Thread] Error restarting ping thread " + str(e))
                     self.logger.error("[Main Thread] " + str(traceback.format_exc()))
 
-        time.sleep(1)
+
