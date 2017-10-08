@@ -1,5 +1,5 @@
 from client.client_controller import ClientController
-from client.client import CommunicationHandler
+from client.client_socket import SocketLayer
 from client.handlers.message_handler import MessageHandler
 from client.handlers.action_handler import ActionHandler
 from client.handlers.ssh_action_handler import SshActionHandler
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     settings = read_config()
 
-    communication_handler = CommunicationHandler(settings["server_port"],
+    socket_layer = SocketLayer(settings["server_port"],
                                                  settings["server_addr"],
                                                  settings["username"],
                                                  settings["password"])
@@ -43,16 +43,13 @@ if __name__ == '__main__':
 
 
     # Intialize spesific handlers
-    message_handler.action_handler = action_handler
-    message_handler.utility_handler = utility_handler
+    message_handler.register_handler(action_handler, "action")
+    message_handler.register_handler(utility_handler, "utility")
 
     # Create a clientcontroller
-    client_controller = ClientController(communication_handler, message_handler)
+    client_controller = ClientController(socket_layer, message_handler)
 
-    #message_handler.server = client_controller
-    #action_handler.server = client_controller
-    #utility_handler.server = client_controller
-
+    # TODO refactor this
     ssh_action_handler.server = client_controller
 
     #add action handlers dynamically

@@ -12,7 +12,7 @@ import logging
 import traceback
 
 
-class CommunicationHandler(object):
+class SocketLayer(object):
 
     def __init__(self, port, host, username, password, software_version="V0.0.16"):
         self.serverHost = host
