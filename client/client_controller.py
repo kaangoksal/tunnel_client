@@ -149,9 +149,9 @@ class ClientController(object):
 
                 message = self.outbox_queue.get(block=True)
                 # print("[outbox_work] Message ready for departure " + str(message))
-                self.logger.debug("[outbox_work] Message ready for departure " + str(message))
                 try:
                     self.communication_handler.send_message(message.pack_to_json_string())
+                    self.logger.debug("[outbox_work] Message sent " + str(message))
                 except Exception as e:
                     self.logger.error("[outbox_work] Exception occurred during send " + str(e))
                     if not self.is_server_alive() and self.status:
@@ -205,6 +205,7 @@ class ClientController(object):
         while self.status:
             # Blocking call
             message_block = self.inbox_queue.get(block=True)
+            self.logger.debug("[main logic] handling a message! ", message_block)
             self.message_handler.handle_message(message_block)
 
     def initialize_threads(self):
