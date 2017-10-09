@@ -13,16 +13,14 @@ def read_config():
     return_dict = {}
     config = configparser.ConfigParser()
     config.read("client_config")
-    return_dict["server_addr"] = config.get("Tunnel Client Settings", "host")
-    return_dict["server_port"] = int(config.get("Tunnel Client Settings", "port"))
-    return_dict["username"] = config.get("Tunnel Client Settings", "username")
-    return_dict["password"] = config.get("Tunnel Client Settings", "password")
+    config_sections = config.sections()
 
-    return_dict["ssh_key_location"] = config.get("SSH Task Settings", "key_location")
-    return_dict["ssh_server_addr"] = config.get("SSH Task Settings", "server_addr")
-    return_dict["ssh_server_username"] = config.get("SSH Task Settings", "server_username")
-    return_dict["ssh_server_local_port"] = config.get("SSH Task Settings", "ssh_local_port")
-    return_dict["ssh_server_remote_port"] = config.get("SSH Task Settings", "ssh_remote_port")
+    for config_section in config_sections:
+        config_section_options = config.options(config_section)
+        config_section_dict = {}
+        for config_section_option in config_section_options:
+            config_section_dict[config_section_option] = config.get(config_section, config_section_option)
+        return_dict[config_section] = config_section_dict
 
     return return_dict
 
@@ -30,29 +28,35 @@ def read_config():
 if __name__ == '__main__':
 
     settings = read_config()
+    # Create the socket layer which will deal with sockets and messages in a lower level
 
-    socket_layer = SocketLayer(settings["server_port"],
-                                                 settings["server_addr"],
-                                                 settings["username"],
-                                                 settings["password"])
-    #Initialize handler objects
+    socket_layer_settings = settings['Tunnel Client Settings']
+
+    socket_layer = SocketLayer(int(socket_layer_settings["port"]),
+                               socket_layer_settings["host"],
+                               socket_layer_settings["username"],
+                               socket_layer_settings["password"])
+
+    # Create action handler
     action_handler = ActionHandler()
+    # Create child handlers of the action handler
+    ssh_settings = settings['SSH Task Settings']
+    ssh_action_handler = SshActionHandler(ssh_settings)
+
+    # register the handlers to the action handler
+    action_handler.register_handler(ssh_action_handler, "SSH")
+
+    # create utility handler
     utility_handler = UtilityHandler()
-    ssh_action_handler = SshActionHandler(settings)
+
+    # Create the main handler
     message_handler = MessageHandler()
 
-
-    # Intialize spesific handlers
+    # register the child handlers to the main handler
     message_handler.register_handler(action_handler, "action")
     message_handler.register_handler(utility_handler, "utility")
 
-    # Create a clientcontroller
+    # Create a client_controller which will recursively initialize the handlers
     client_controller = ClientController(socket_layer, message_handler)
-
-    # TODO refactor this
-    ssh_action_handler.server = client_controller
-
-    #add action handlers dynamically
-    action_handler.action_handlers["SSH"] = ssh_action_handler
-
+    # threads fire up and the client is online!
     client_controller.run()

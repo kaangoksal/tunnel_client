@@ -39,15 +39,15 @@ class MessageHandler(object):
         else:
             print("ERROR! MessageHandler is not initialized properly!")
 
-    def register_handler(self, handler, type):
+    def register_handler(self, handler, handler_type):
         """
         This is for registering message handlers! I did not decide whether this can be called after initialize...
         :param handler:
-        :param type:
+        :param handler_type:
         :return:
         """
-        if type is not None or handler is not None:
-            self.handlers[type] = handler
+        if handler_type is not None or handler is not None:
+            self.handlers[handler_type] = handler
 
     def handle_message(self, message):
         """
