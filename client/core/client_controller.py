@@ -1,14 +1,14 @@
-
+import datetime
+import logging
+import select
+import signal
+import sys
 import threading
 import time
-import signal
-import logging
 import traceback
-import select
-import sys
-from Message import Message
 from queue import Queue
-import datetime
+
+from client.models.Message import Message
 
 
 class ClientController(object):

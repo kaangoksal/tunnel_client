@@ -1,11 +1,9 @@
-from color_print import ColorPrint
-import time
-from Message import Message
-import json
+import datetime
 import signal
 import sys
 import threading
-import datetime
+
+from client.utility.color_print import ColorPrint
 
 
 class ClientUI(object):

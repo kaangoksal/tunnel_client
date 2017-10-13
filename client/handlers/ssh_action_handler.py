@@ -1,6 +1,8 @@
 import json
+
+from client.models.Message import Message
 from client.tasks.reverse_ssh_task import ReverseSSHTask
-from Message import Message
+
 
 # TODO check whether start ssh task and stop ssh task was successful
 # TODO look for possible try except use cases

@@ -2,6 +2,7 @@ import json
 
 
 class ActionHandler(object):
+
     def __init__(self, server=None):
         self.server = server
         self.logger = None

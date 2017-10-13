@@ -1,14 +1,12 @@
 import getpass
 import json
-import os
+import logging
 import signal
 import socket
 import struct
 import sys
-import time
 import threading
-from Message import Message
-import logging
+import time
 import traceback
 
 
