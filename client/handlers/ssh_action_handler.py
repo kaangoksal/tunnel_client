@@ -5,6 +5,7 @@ from Message import Message
 # TODO check whether start ssh task and stop ssh task was successful
 # TODO look for possible try except use cases
 # TODO think about return
+# TODO Revise this
 
 
 class SshActionHandler(object):
@@ -16,10 +17,18 @@ class SshActionHandler(object):
         """
         print("SSH Action Handler Started")
         self.server = server
+        self.logger = None
         self.active_ssh_tasks = {}
-        self.key_location = settings["ssh_key_location"]
-        self.server_addr = settings["ssh_server_addr"]
-        self.server_username = settings["ssh_server_username"]
+        self.key_location = settings["key_location"]
+        self.server_addr = settings["server_addr"]
+        self.server_username = settings["server_username"]
+
+    def initialize(self, server):
+        self.server = server
+        if self.server is not None:
+            self.logger = self.server.logger
+        else:
+            print("ERROR! SSHActionHandler is not initialized properly!")
 
     def handle_message(self, message):
         """
@@ -76,7 +85,6 @@ class SshActionHandler(object):
             result_message = Message(self.server.communication_handler.username, "server", "result",
                                      "SSH Problem " + str(message))
             self.server.outbox_queue.put(result_message)
-
 
     def stop_ssh_task(self, parameters):
         """

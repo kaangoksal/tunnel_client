@@ -9,11 +9,12 @@ import time
 import threading
 from Message import Message
 import logging
+import traceback
 
 
-class CommunicationHandler(object):
+class SocketLayer(object):
 
-    def __init__(self, port, host, username, password, software_version="V 0.0.12"):
+    def __init__(self, port, host, username, password, software_version="V0.0.16"):
         self.serverHost = host
         self.serverPort = port
         self.socket = None
@@ -25,13 +26,15 @@ class CommunicationHandler(object):
         self.software_version = software_version
 
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
 
         handler = logging.FileHandler('client.log')
+        console_out = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
 
         self.logger.addHandler(handler)
+        self.logger.addHandler(console_out)
         self.logger.info("client started")
 
     def register_signal_handler(self):
@@ -40,15 +43,16 @@ class CommunicationHandler(object):
         return
 
     def quit_gracefully(self, signal=None, frame=None):
-        print('\nQuitting gracefully')
+        # print('\nQuitting gracefully')
         self.logger.info("Quitting gracefully")
         if self.socket:
             try:
                 self.socket.shutdown(2)
                 self.socket.close()
             except Exception as e:
-                print('Could not close connection %s' % str(e))
+                # print('Could not close connection %s' % str(e))
                 self.logger.error('Could not close connection %s' % str(e))
+                self.logger.error("[quit_gracefully] " + str(traceback.format_exc()))
                 # continue
         sys.exit(0)
 
@@ -57,7 +61,7 @@ class CommunicationHandler(object):
         try:
             self.socket = socket.socket()
         except socket.error as e:
-            print("Socket creation error" + str(e))
+            # print("Socket creation error" + str(e))
             self.logger.error('Socket creation error' + str(e))
             return
         return
@@ -68,8 +72,9 @@ class CommunicationHandler(object):
         try:
             self.socket.connect((self.serverHost, self.serverPort))
         except socket.error as e:
-            print("Socket connection error: " + str(e))
-            self.logger.error('Socket connection error' + str(e))
+            # print("Socket connection error: " + str(e))
+            self.logger.error('[socket_connect] Socket connection error' + str(e))
+            self.logger.error("[socket_connect] " + str(traceback.format_exc()))
             time.sleep(5)
             raise
         try:
@@ -83,42 +88,54 @@ class CommunicationHandler(object):
                }
 
             return_string = json.dumps(return_dict, sort_keys=True, indent=4, separators=(',', ': '))
-            # print(return_string)
+            # # print(return_string)
 
             self.send_message(return_string)
             # TODO look for auth confirmation
             return True
 
         except socket.error as e:
-            print("Cannot send hostname to server: " + str(e))
-            self.logger.error("Cannot send auth info to server " + str(e))
+            # print("Cannot send hostname to server: " + str(e))
+            self.logger.error("[socket_connect] Cannot send auth info to server " + str(e))
+            self.logger.error("[socket_connect] " + str(traceback.format_exc()))
+
             return False
 
     def reconnect(self):
-        self.socket.shutdown(2)
+        # for some reason if the socket is dead you can't turn it off... lame...
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except Exception as e:
+            # print("[reconnect] " + str(e))
+            self.logger.error("[reconnect] " + str(traceback.format_exc()))
+
         self.socket.close()
+
         self.socket_create()
         self.connected = False
         while not self.connected:
             try:
                 self.connected = self.socket_connect()
             except ConnectionRefusedError as e:
-                print("Connection refused, trying again in 5 seconds " + str(e))
-                self.logger.error("Connection refused, trying again in 5 seconds " + str(e))
-            time.sleep(5)
+                # print("Connection refused, trying again in 5 seconds " + str(e))
+                self.logger.error("[reconnect] Connection refused, trying again in 5 seconds " + str(e))
+                self.logger.error("[reconnect] " + str(traceback.format_exc()))
+                time.sleep(5)
+
+        self.logger.info("[reconnect] reconnect successful")
 
     def send_message(self, output_str):
         """ Sends message to the server
          :param output_str: string message that will go to the server
         """
-        print("will send this " + str(output_str))
+        # print("will send this " + str(output_str))
         self.logger.debug("will send this message " + str(output_str))
         byte_array_message = str.encode(output_str)
         # We are packing the lenght of the packet to unsigned big endian
         #  struct to make sure that it is always constant length
         #with self.lock:
         self.socket.send(struct.pack('>I', len(byte_array_message)) + byte_array_message)
-        print("Sent!")
+        # print("Sent!")
 
 
     def read_message(self):

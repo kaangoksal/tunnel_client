@@ -1,16 +1,40 @@
 **Version History**
 
+V 0.0.19 (Future)
+- Encrypt Communications
+- Check server certificate
+
+V 0.0.18 (Future)
+- Send logs to the server
+- Software update
+- Automate key registeration + generation
+
+V 0.0.17 (Future)
+- Different message types and commands
+- Agility cleanup
+- Clean up timings
+
+V 0.0.16 (Future)
+- Seperate processes for actions
+- Solved reconnection problem due to a race condition
+
+V 0.0.15 (Deployed Beta)
+- Client sends the ping to the server
+- Client tries to establish a new connection if it does not receive a reply
 
 V 0.0.12
-
 - Replies to ping 
-
-
 
 V 0.0.1
 - Improved status message check for reverse ssh task
 - Added software version
 
+**Debugging Info**
+helps to see packets going around  
+`sudo tcpflow -i any -C -J port 9000`
+
+This is also a thing but didn't use it much  
+`tcpdump port 9000`
 
 **Setup Instructions**
 
