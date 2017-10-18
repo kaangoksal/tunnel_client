@@ -12,24 +12,24 @@ from client.models.Message import Message
 
 
 class ClientController(object):
-    def __init__(self, socket_layer, message_handler):
+    def __init__(self, socket_layer, message_handler, logger=None):
         """
         Constructore of Client controller
         :param comm_handler: the module that has functions for communications
         :param message_handler: the module that will handle messages
         """
-
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
-
-        handler = logging.FileHandler('client.log')
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-
-        self.logger.addHandler(handler)
-        console_out = logging.StreamHandler(sys.stdout)
-        #self.logger.addHandler(console_out)
-        self.logger.info("client started")
+        self.logger = logger
+        # self.logger = logging.getLogger(__name__)
+        # self.logger.setLevel(logging.DEBUG)
+        #
+        # handler = logging.FileHandler('client.log')
+        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # handler.setFormatter(formatter)
+        #
+        # self.logger.addHandler(handler)
+        # console_out = logging.StreamHandler(sys.stdout)
+        # #self.logger.addHandler(console_out)
+        # self.logger.info("client started")
 
         self.inbox_queue = Queue()
         self.outbox_queue = Queue()
@@ -58,6 +58,7 @@ class ClientController(object):
 
         self.re_connections = 0
         self.connection_date = datetime.datetime.now()
+
     def run(self):
         """
         Starts the client controller, also registers termination signal handlers.

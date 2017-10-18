@@ -12,7 +12,7 @@ import traceback
 
 class SocketLayer(object):
 
-    def __init__(self, port, host, username, password, software_version="V0.0.16"):
+    def __init__(self, port, host, username, password, software_version="V0.0.16", logger = None):
         self.serverHost = host
         self.serverPort = port
         self.socket = None
@@ -23,16 +23,7 @@ class SocketLayer(object):
         self.password = password
         self.software_version = software_version
 
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-
-        handler = logging.FileHandler('client.log')
-        console_out = logging.StreamHandler(sys.stdout)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-
-        self.logger.addHandler(handler)
-        self.logger.addHandler(console_out)
+        self.logger = logger
         self.logger.info("client started")
 
     def register_signal_handler(self):

@@ -1,6 +1,8 @@
 import configparser
+import logging
+from logging import handlers as logging_handlers
 
-from client.client_socket_layer import SocketLayer
+from client.core.client_socket_layer import SocketLayer
 
 from client.core.client_controller import ClientController
 from client.handlers.action_handler import ActionHandler
@@ -25,7 +27,38 @@ def read_config():
     return return_dict
 
 
+def create_logger():
+    # self.logger = logging.getLogger(__name__)
+    # self.logger.setLevel(logging.INFO)
+    #
+    # handler = logging.FileHandler('client.log')
+    # console_out = logging.StreamHandler(sys.stdout)
+    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # handler.setFormatter(formatter)
+    #
+    # self.logger.addHandler(handler)
+    # self.logger.addHandler(console_out)
+
+    new_logger = logging.getLogger(__name__)
+    new_logger.setLevel(logging.DEBUG)
+
+    # handler = logging.FileHandler('server.log')
+    handler = logging_handlers.TimedRotatingFileHandler('server.log', when='midnight', interval=1, backupCount=7,
+                                                        utc=True)
+
+    handler.setLevel(logging.INFO)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    new_logger.addHandler(handler)
+
+    return new_logger
+
+
 if __name__ == '__main__':
+
+    client_logger = create_logger()
 
     settings = read_config()
     # Create the socket layer which will deal with sockets and messages in a lower level
@@ -35,7 +68,7 @@ if __name__ == '__main__':
     socket_layer = SocketLayer(int(socket_layer_settings["port"]),
                                socket_layer_settings["host"],
                                socket_layer_settings["username"],
-                               socket_layer_settings["password"])
+                               socket_layer_settings["password"], logger=client_logger)
 
     # Create action handler
     action_handler = ActionHandler()
@@ -57,6 +90,6 @@ if __name__ == '__main__':
     message_handler.register_handler(utility_handler, "utility")
 
     # Create a client_controller which will recursively initialize the handlers
-    client_controller = ClientController(socket_layer, message_handler)
+    client_controller = ClientController(socket_layer, message_handler, logger=client_logger)
     # threads fire up and the client is online!
     client_controller.run()
